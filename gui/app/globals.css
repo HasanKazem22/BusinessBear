@@ -130,6 +130,17 @@
     @apply font-sans;
   }
 
+  /* Global Cursor Pointer for Interactive Elements */
+  button, 
+  [role="button"],
+  a,
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  select {
+    cursor: pointer;
+  }
+
   /* Custom Premium Scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
@@ -162,4 +173,15 @@
 
 .text-outline {
   -webkit-text-stroke: var(--text-stroke);
+}
+
+/* Hide Google Translate Default UI */
+body {
+  top: 0 !important;
+}
+.skiptranslate iframe,
+#google_translate_element,
+.goog-te-banner-frame,
+.goog-te-combo {
+  display: none !important;
 }

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Search, Filter } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -51,7 +52,7 @@ const products = [
     name: "Samsung Galaxy S26",
     price: "Tk. 1,29,999",
     originalPrice: "Tk. 1,49,999",
-    image: "https://images.unsplash.com/photo-1610792516307-ea5acd3c3800?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&q=80",
     brandLogo: "Authorized Reseller",
     rating: 5.0,
   },
@@ -60,7 +61,7 @@ const products = [
     name: "Samsung Galaxy S26",
     price: "Tk. 1,29,999",
     originalPrice: "Tk. 1,49,999",
-    image: "https://images.unsplash.com/photo-1610792516307-ea5acd3c3800?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800&q=80",
     brandLogo: "Authorized Reseller",
     rating: 5.0,
   },
@@ -69,20 +70,52 @@ const products = [
 export default function ProductPage() {
   return (
     <div className="h-full overflow-y-auto py-8 px-4">
-      <div className="container mx-auto">
+      <div className="container mx-auto max-w-7xl">
+
+        {/* Header Section */}
+        <div className="mb-8 flex flex-col items-center text-center gap-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
+              Premium Products
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 mt-3 text-sm md:text-base max-w-xl mx-auto">
+              Explore our collection of top-tier electronics and smart devices at unbeatable prices.
+            </p>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="flex items-center gap-3 w-full max-w-md justify-center">
+            <div className="relative group flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-zinc-950 dark:group-focus-within:text-white transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search products..."
+                className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200"
+              />
+            </div>
+            <Button variant="outline" className="rounded-xl h-[38px] px-3 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 text-zinc-950 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <Filter className="h-4 w-4 mr-2" />
+              <span className="text-xs font-semibold">Filters</span>
+            </Button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {products.map((product) => (
-            <Card key={product.id} className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60 bg-card transition-colors duration-300">
+            <Card key={product.id} className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60 bg-card transition-colors duration-300 p-0 gap-0 overflow-hidden group">
+              {/* Product Image - Full Width & Top */}
+              <div className="relative w-full aspect-[4/3] bg-zinc-100 dark:bg-zinc-900">
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+
               <div className="p-3 flex flex-col items-center flex-1">
-                {/* Product Image */}
-                <div className="relative w-full aspect-[4/3] mb-3">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-contain"
-                  />
-                </div>
 
                 {/* Brand Logo Placeholder */}
                 <div className="mb-1 h-4 flex items-center justify-center">
@@ -99,7 +132,7 @@ export default function ProductPage() {
                 {/* Price */}
                 <div className="flex flex-col items-center gap-0.5 mb-2">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-zinc-950 dark:text-[#25D379] font-bold text-sm">
+                    <span className="text-zinc-950 dark:text-white font-bold text-sm">
                       {product.price}
                     </span>
                     {product.originalPrice && (
@@ -131,7 +164,7 @@ export default function ProductPage() {
                 {/* Buy Now Button */}
                 <Button
                   variant="outline"
-                  className="w-full mt-auto rounded-full border-zinc-200 dark:border-[#25D379] text-zinc-950 dark:text-[#25D379] hover:bg-zinc-950 hover:text-white dark:hover:bg-[#25D379] dark:hover:text-black transition-colors py-1 h-8 text-[11px] font-semibold bg-white dark:bg-[#25D379]/5"
+                  className="w-full mt-auto rounded-full border-zinc-200 dark:border-white text-zinc-950 dark:text-white hover:bg-zinc-950 hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors py-1 h-8 text-[11px] font-semibold bg-white dark:bg-white/5"
                 >
                   Buy Now
                 </Button>

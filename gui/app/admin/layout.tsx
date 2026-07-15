@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  PlusCircle,
+  Package,
   Users,
   Settings,
+  Home,
+  Building2,
   ChevronRight,
   ChevronLeft,
   Menu
@@ -22,9 +24,19 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
-    name: "Product Add",
-    href: "/admin/products/add",
-    icon: PlusCircle,
+    name: "Home",
+    href: "/admin/home",
+    icon: Home,
+  },
+  {
+    name: "Products",
+    href: "/admin/products",
+    icon: Package,
+  },
+  {
+    name: "Real Assets",
+    href: "/admin/assets",
+    icon: Building2,
   },
   {
     name: "User Management",
@@ -65,7 +77,7 @@ export default function AdminLayout({
                 className={cn(
                   "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
                   isActive
-                    ? "bg-zinc-100 text-zinc-950 dark:bg-[#25D379]/10 dark:text-[#25D379]"
+                    ? "bg-zinc-100 text-zinc-950 dark:bg-white/10 dark:text-white"
                     : "text-muted-foreground hover:bg-zinc-100/50 hover:text-zinc-950 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100",
                   isCollapsed ? "justify-center px-0" : "justify-between"
                 )}
