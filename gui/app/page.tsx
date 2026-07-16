@@ -76,15 +76,14 @@ export default function Home() {
 
         {/* ================= HERO SECTION ================= */}
         <section id="home" className="flex flex-col items-center text-center scroll-mt-24">
-          <div className="relative w-full max-w-md md:max-w-xl lg:max-w-2xl aspect-[4/1] mb-4">
-            <Image
-              src="/BusinessBearLogo.png"
-              alt="Business Bear Logo"
-              fill
-              className="object-contain dark:invert dark:hue-rotate-180"
-              priority
-            />
-          </div>
+          <Image
+            src="/BusinessBearLogo.png"
+            alt="Business Bear Logo"
+            width={400}
+            height={100}
+            className="h-12 md:h-16 w-auto object-contain dark:invert dark:hue-rotate-180 mb-4"
+            priority
+          />
           <p className="text-zinc-600 dark:text-zinc-400 text-base md:text-lg max-w-2xl leading-relaxed font-light">
             Welcome to our digital agency where innovation meets aesthetics.
             We specialize in transforming complex challenges into elegant, robust, and intuitive software solutions.
@@ -195,7 +194,7 @@ export default function Home() {
           </div>
 
           <div className="bg-card rounded-3xl p-6 md:p-8 shadow-xl border border-zinc-100 dark:border-zinc-800/80 flex flex-col lg:flex-row gap-8 overflow-hidden transition-colors duration-300 relative">
-            
+
             {/* Left Side: Contact Information */}
             <div className="lg:w-5/12 flex flex-col gap-8">
               <div>
@@ -206,7 +205,7 @@ export default function Home() {
                   Have a project in mind or just want to say hi? We'd love to hear from you. Reach out using the form or our direct contact info below.
                 </p>
               </div>
-              
+
               <div className="flex flex-col gap-5 mt-2">
                 <div className="flex items-start gap-4 group">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-950 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">

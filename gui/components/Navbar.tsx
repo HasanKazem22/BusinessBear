@@ -59,6 +59,10 @@ export function Navbar() {
     }
   };
 
+  if (pathname === "/login" || pathname === "/signup") {
+    return null;
+  }
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -70,7 +74,7 @@ export function Navbar() {
               alt="Business Bear Logo"
               width={150}
               height={40}
-              className="h-16 w-auto object-contain dark:invert dark:hue-rotate-180 scale-125 origin-left"
+              className="h-9 w-auto object-contain dark:invert dark:hue-rotate-180"
               priority
             />
           </Link>
@@ -96,9 +100,11 @@ export function Navbar() {
 
         {/* Right Side: Actions */}
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="hidden sm:flex">
-            Log In
-          </Button>
+          <Link href="/login" className="hidden sm:block">
+            <Button variant="outline">
+              Log In
+            </Button>
+          </Link>
           <div className="h-8 w-px bg-border hidden sm:block" />
           <LanguageToggle />
           <ThemeToggle />

@@ -27,6 +27,7 @@ export function HomeConfigTab() {
   const [formData, setFormData] = useState({
     // Hero
     heroDescription: "Welcome to our digital agency where innovation meets aesthetics. We specialize in transforming complex challenges into elegant, robust, and intuitive software solutions. Partner with us to elevate your brand's digital presence and build scalable products that your users will love.",
+    heroImageUrl: "/BusinessBearLogo.png",
     
     // Services Section
     servicesTitle: "Our Services",
@@ -38,6 +39,7 @@ export function HomeConfigTab() {
     aboutName: "Hasibul Hasan",
     aboutRole: "Lead Software Engineer & Designer",
     aboutBio: "With over a decade of experience in software architecture and interactive design, I focus on bridging the gap between engineering and art. My mission is to build digital products that are not only extremely performant and scalable but also deeply engaging and visually breathtaking.",
+    aboutImageUrl: "/ProfilePicture.png",
 
     // Contact Section
     contactTitle: "Let's Work Together",
@@ -96,9 +98,17 @@ export function HomeConfigTab() {
       <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
         <CardHeader>
           <CardTitle>Hero Section</CardTitle>
-          <CardDescription>Update the main introduction text (Logo is fixed).</CardDescription>
+          <CardDescription>Update the main introduction text and logo image.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="heroImageUrl">Hero Image / Logo URL</Label>
+            <div className="flex gap-2">
+              <Input id="heroImageUrl" name="heroImageUrl" value={formData.heroImageUrl} onChange={handleChange} placeholder="https://..." />
+              <Button variant="outline">Upload</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Upload a new image or paste a URL.</p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="heroDescription">Main Description</Label>
             <Textarea id="heroDescription" name="heroDescription" rows={4} value={formData.heroDescription} onChange={handleChange} />
@@ -207,10 +217,18 @@ export function HomeConfigTab() {
       <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
         <CardHeader>
           <CardTitle>About Section</CardTitle>
-          <CardDescription>Manage the profile bio and headers.</CardDescription>
+          <CardDescription>Manage the profile bio, headers, and image.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="aboutImageUrl">Profile Picture URL</Label>
+            <div className="flex gap-2">
+              <Input id="aboutImageUrl" name="aboutImageUrl" value={formData.aboutImageUrl} onChange={handleChange} placeholder="https://..." />
+              <Button variant="outline">Upload</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Upload a new profile photo or paste a URL.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4 mt-2">
             <div className="space-y-2">
               <Label htmlFor="aboutTitle">Section Title</Label>
               <Input id="aboutTitle" name="aboutTitle" value={formData.aboutTitle} onChange={handleChange} />

@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function RootLayout({
   children,
@@ -56,8 +57,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1 overflow-hidden">{children}</main>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
