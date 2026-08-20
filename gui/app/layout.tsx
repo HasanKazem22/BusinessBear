@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -58,6 +59,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <Toaster position="top-right" toastOptions={{ className: 'dark:bg-zinc-900 dark:text-white border dark:border-zinc-800' }} />
             <Navbar />
             <main className="flex-1 overflow-hidden">{children}</main>
           </AuthProvider>

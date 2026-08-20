@@ -1,299 +1,315 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Sparkles, Layers, UserCheck, Mail, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Save, Plus, Pencil, Trash2 } from "lucide-react";
-import { GlobalModal } from "@/components/ui/global-modal";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "react-hot-toast";
 
-type ServiceData = {
-  id: number;
-  title: string;
-  description: string;
-  iconName: string;
-};
+import { HeroData, ServiceData, AboutUsData } from "@/types/home";
+import { homeService } from "@/services/homeService";
+import { DEFAULT_HERO, DEFAULT_ABOUT, withDefaults } from "@/lib/constants/homeDefaults";
 
-const initialServices: ServiceData[] = [
-  { id: 1, title: "Web Development", description: "Building robust, scalable, and responsive web applications.", iconName: "Code" },
-  { id: 2, title: "UI/UX Design", description: "Crafting intuitive and engaging user experiences.", iconName: "Palette" },
-  { id: 3, title: "Mobile App Development", description: "Developing cross-platform mobile applications.", iconName: "Smartphone" },
-];
+// Section Modals
+import { HeroModal } from "./home/HeroModal";
+import { ServicesModal, ServiceFormModal, DeleteConfirmModal } from "./home/ServicesModal";
+import { AboutModal } from "./home/AboutModal";
+import { ContactModal } from "./home/ContactModal";
 
+// ─────────────────────────────────────────────────────────────────────────────
 export function HomeConfigTab() {
-  const [formData, setFormData] = useState({
-    // Hero
-    heroDescription: "Welcome to our digital agency where innovation meets aesthetics. We specialize in transforming complex challenges into elegant, robust, and intuitive software solutions. Partner with us to elevate your brand's digital presence and build scalable products that your users will love.",
-    heroImageUrl: "/BusinessBearLogo.png",
-    
-    // Services Section
-    servicesTitle: "Our Services",
-    servicesSubtitle: "What we can do for you",
+  // ── Loading & Error ──
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-    // About Section
-    aboutTitle: "About Us",
-    aboutSubtitle: "Meet the minds behind the magic",
-    aboutName: "Hasibul Hasan",
-    aboutRole: "Lead Software Engineer & Designer",
-    aboutBio: "With over a decade of experience in software architecture and interactive design, I focus on bridging the gap between engineering and art. My mission is to build digital products that are not only extremely performant and scalable but also deeply engaging and visually breathtaking.",
-    aboutImageUrl: "/ProfilePicture.png",
+  // ── Save ──
+  const [isSavingHero, setIsSavingHero] = useState(false);
+  const [isSavingAbout, setIsSavingAbout] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [isSavingService, setIsSavingService] = useState(false);
+  const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
 
-    // Contact Section
-    contactTitle: "Let's Work Together",
-    contactSubtitle: "Send us a message to get started",
-    contactEmail: "hello@businessbear.com",
-    contactPhone: "+1 (555) 123-4567",
-    contactLocation: "123 Innovation Drive, NY"
-  });
-
-  // Services State
-  const [services, setServices] = useState<ServiceData[]>(initialServices);
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [serviceFormData, setServiceFormData] = useState<Partial<ServiceData>>({ title: "", description: "", iconName: "" });
+  // ── Modal State ──
+  const [activeModal, setActiveModal] = useState<"hero" | "services" | "about" | "contact" | null>(null);
+  const [isServiceFormOpen, setIsServiceFormOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // ── Data (initial values come from shared defaults) ──
+  const [heroData, setHeroData] = useState<HeroData>(DEFAULT_HERO);
+
+  const [services, setServices] = useState<ServiceData[]>([]);
+  const [serviceForm, setServiceForm] = useState<Partial<ServiceData>>({
+    title: "", description: "", iconName: "Code", isActive: true,
+  });
+
+  const [aboutData, setAboutData] = useState<AboutUsData>(DEFAULT_ABOUT);
+
+  const [contactData, setContactData] = useState({
+    email: DEFAULT_ABOUT.email,
+    phone: DEFAULT_ABOUT.phone,
+    location: DEFAULT_ABOUT.location,
+  });
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const fetchAllData = async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const [heroRes, servicesRes, aboutRes] = await Promise.all([
+        homeService.getHero(),
+        homeService.getAllServicesAdmin(),
+        homeService.getAboutUs(),
+      ]);
+
+      if (heroRes.success) {
+        const hero = withDefaults(DEFAULT_HERO, heroRes.data);
+        setHeroData(hero);
+      }
+
+      if (servicesRes.success && Array.isArray(servicesRes.data)) {
+        setServices(servicesRes.data);
+      }
+
+      if (aboutRes.success) {
+        const about = withDefaults(DEFAULT_ABOUT, aboutRes.data);
+        setAboutData(about);
+        setContactData({ email: about.email, phone: about.phone, location: about.location });
+      }
+    } catch (err: any) {
+      const msg = err?.message || "Failed to load configuration. Check your backend connection.";
+      setFetchError(msg);
+      toast.error("Failed to load home configuration.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSaveSection = (section: string) => {
-    alert(`Saved ${section} successfully! (Mock)`);
+  useEffect(() => { fetchAllData(); }, []);
+
+  // ── Save Handlers ──────────────────────────────────────────────────────────
+  const handleSaveHero = async () => {
+    setIsSavingHero(true);
+    try {
+      const res = await toast.promise(homeService.updateHero(heroData), {
+        loading: "Saving…", success: "Hero section saved!", error: (e) => e?.message || "Failed",
+      });
+      if (res.success) {
+        setHeroData(withDefaults(DEFAULT_HERO, res.data));
+      }
+      setActiveModal(null);
+    } catch { /* toast */ } finally { setIsSavingHero(false); }
   };
 
-  // Service Modal Handlers
-  const handleOpenNewService = () => {
+  const handleSaveAbout = async () => {
+    setIsSavingAbout(true);
+    const payload: AboutUsData = { ...aboutData, ...contactData };
+    try {
+      const res = await toast.promise(homeService.updateAboutUs(payload), {
+        loading: "Saving…", success: "Profile saved!", error: (e) => e?.message || "Failed",
+      });
+      if (res.success) {
+        const about = withDefaults(DEFAULT_ABOUT, res.data);
+        setAboutData(about);
+        setContactData({ email: about.email, phone: about.phone, location: about.location });
+      }
+      setActiveModal(null);
+    } catch { /* toast */ } finally { setIsSavingAbout(false); }
+  };
+
+  const handleSaveContact = async () => {
+    setIsSavingContact(true);
+    const payload: AboutUsData = { ...aboutData, ...contactData };
+    try {
+      const res = await toast.promise(homeService.updateAboutUs(payload), {
+        loading: "Saving…", success: "Contact info saved!", error: (e) => e?.message || "Failed",
+      });
+      if (res.success && res.data) {
+        const a = res.data;
+        const m = { fullName: a.fullName || "", designation: a.designation || "", bio: a.bio || "", avatarUrl: a.avatarUrl || "", email: a.email || "", phone: a.phone || "", location: a.location || "" };
+        setAboutData(m);
+        setContactData({ email: m.email, phone: m.phone, location: m.location });
+      }
+      setActiveModal(null);
+    } catch { /* toast */ } finally { setIsSavingContact(false); }
+  };
+
+  // ── Service CRUD ───────────────────────────────────────────────────────────
+  const handleOpenAddService = () => {
     setEditingServiceId(null);
-    setServiceFormData({ title: "", description: "", iconName: "" });
-    setIsServiceModalOpen(true);
+    setServiceForm({ title: "", description: "", iconName: "Code", isActive: true });
+    setIsServiceFormOpen(true);
   };
 
-  const handleOpenEditService = (service: ServiceData) => {
-    setEditingServiceId(service.id);
-    setServiceFormData(service);
-    setIsServiceModalOpen(true);
+  const handleOpenEditService = (svc: ServiceData) => {
+    setEditingServiceId(svc.id);
+    setServiceForm(svc);
+    setIsServiceFormOpen(true);
   };
 
-  const handleDeleteService = (id: number) => {
-    if (confirm("Are you sure you want to delete this service?")) {
-      setServices(services.filter(s => s.id !== id));
-    }
+  const handleSaveService = async () => {
+    if (!serviceForm.title?.trim()) { toast.error("Title is required."); return; }
+    if (!serviceForm.description?.trim()) { toast.error("Description is required."); return; }
+    setIsSavingService(true);
+    const isEditing = !!editingServiceId;
+    const payload = {
+      title: serviceForm.title!,
+      description: serviceForm.description!,
+      iconName: serviceForm.iconName || "Code",
+      displayOrder: serviceForm.displayOrder ?? (isEditing ? serviceForm.displayOrder : services.length + 1),
+      isActive: serviceForm.isActive ?? true,
+    };
+    try {
+      const res = await toast.promise(
+        isEditing ? homeService.updateService(editingServiceId!, payload) : homeService.createService(payload),
+        { loading: isEditing ? "Updating…" : "Creating…", success: isEditing ? "Service updated!" : "Service created!", error: (e) => e?.message || "Failed" }
+      );
+      if (res.success && res.data) {
+        setServices((p) => isEditing ? p.map((s) => (s.id === editingServiceId ? res.data : s)) : [...p, res.data]);
+      }
+      setIsServiceFormOpen(false);
+    } catch { /* toast */ } finally { setIsSavingService(false); }
   };
 
-  const handleSaveService = () => {
-    if (editingServiceId) {
-      setServices(services.map(s => s.id === editingServiceId ? { ...s, ...serviceFormData } as ServiceData : s));
-    } else {
-      setServices([...services, { ...serviceFormData, id: Date.now() } as ServiceData]);
-    }
-    setIsServiceModalOpen(false);
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    setDeletingServiceId(id);
+    try {
+      await toast.promise(homeService.deleteService(id), {
+        loading: "Deleting…", success: "Service deleted!", error: (e) => e?.message || "Delete failed",
+      });
+      setServices((p) => p.filter((s) => s.id !== id));
+    } catch { /* toast */ } finally { setDeletingServiceId(null); }
   };
+
+  // ── Render: Loading ────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="pt-2 pb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex items-center gap-4 animate-pulse">
+              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+              <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: Error ──────────────────────────────────────────────────────────
+  if (fetchError) {
+    return (
+      <div className="pt-2 pb-8 flex flex-col items-center justify-center border border-dashed border-red-200 dark:border-red-900/50 rounded-2xl p-8 bg-red-50/10 text-center max-w-xl mx-auto my-10 animate-in fade-in duration-300">
+        <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+        <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Failed to Load Configuration</h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 max-w-sm leading-relaxed">{fetchError}</p>
+        <Button onClick={fetchAllData} size="sm" className="h-8 text-xs font-semibold gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" /> Retry Connection
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Render: Main ──────────────────────────────────────────────────────────
+  const sectionCards = [
+    { id: "hero" as const, icon: <Sparkles className="w-5 h-5" />, label: "Hero Section" },
+    { id: "services" as const, icon: <Layers className="w-5 h-5" />, label: "Our Services" },
+    { id: "about" as const, icon: <UserCheck className="w-5 h-5" />, label: "About Us" },
+    { id: "contact" as const, icon: <Mail className="w-5 h-5" />, label: "Contact Us", hasInbox: true },
+  ];
 
   return (
-    <div className="space-y-6 mt-4 pb-8">
-      
-      {/* 1. Hero Section */}
-      <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
-        <CardHeader>
-          <CardTitle>Hero Section</CardTitle>
-          <CardDescription>Update the main introduction text and logo image.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="heroImageUrl">Hero Image / Logo URL</Label>
-            <div className="flex gap-2">
-              <Input id="heroImageUrl" name="heroImageUrl" value={formData.heroImageUrl} onChange={handleChange} placeholder="https://..." />
-              <Button variant="outline">Upload</Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Upload a new image or paste a URL.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="heroDescription">Main Description</Label>
-            <Textarea id="heroDescription" name="heroDescription" rows={4} value={formData.heroDescription} onChange={handleChange} />
-          </div>
-          <Button onClick={() => handleSaveSection("Hero Section")} className="w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" /> Save Hero Section
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="pt-2 pb-8">
 
-      {/* 2. Services Section */}
-      <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
-        <CardHeader>
-          <CardTitle>Services Section</CardTitle>
-          <CardDescription>Manage the services header and individual service cards.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="servicesTitle">Section Title</Label>
-              <Input id="servicesTitle" name="servicesTitle" value={formData.servicesTitle} onChange={handleChange} />
+      {/* Section Picker Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        {sectionCards.map(({ id, icon, label, hasInbox }) => (
+          <div
+            key={id}
+            onClick={() => setActiveModal(id)}
+            className="group relative bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:border-zinc-400 dark:hover:border-zinc-600 transition-all duration-300 cursor-pointer flex items-center justify-between gap-3 animate-in fade-in duration-300"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                {icon}
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors truncate">
+                {label}
+              </h3>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="servicesSubtitle">Section Subtitle</Label>
-              <Input id="servicesSubtitle" name="servicesSubtitle" value={formData.servicesSubtitle} onChange={handleChange} />
-            </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4 mt-6 border-t border-border pt-6">
-              <h3 className="text-sm font-semibold">Service Cards</h3>
-              <Button size="sm" onClick={handleOpenNewService}>
-                <Plus className="h-4 w-4 mr-2" /> Add Service
-              </Button>
-            </div>
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Icon</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {services.map((service) => (
-                    <TableRow key={service.id}>
-                      <TableCell className="font-mono text-xs">{service.iconName}</TableCell>
-                      <TableCell className="font-medium">{service.title}</TableCell>
-                      <TableCell className="truncate max-w-[200px] text-xs text-muted-foreground">{service.description}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditService(service)}>
-                            <Pencil className="h-4 w-4 text-blue-500" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteService(service.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {services.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                        No services found. Add one!
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          <Button onClick={() => handleSaveSection("Services Section")} className="w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" /> Save Service Settings
-          </Button>
-        </CardContent>
-      </Card>
 
-      {/* Global Modal for Service Cards */}
-      <GlobalModal
-        isOpen={isServiceModalOpen}
-        onOpenChange={setIsServiceModalOpen}
-        title={editingServiceId ? "Edit Service" : "Add New Service"}
-        description="Configure your service card details."
+            {hasInbox && (
+              <Link
+                href="/admin/messages"
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shrink-0"
+                title="View Messages Inbox"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Modals */}
+      <HeroModal
+        isOpen={activeModal === "hero"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+        heroData={heroData}
+        setHeroData={setHeroData}
+        isSaving={isSavingHero}
+        onSave={handleSaveHero}
+      />
+
+      <ServicesModal
+        isOpen={activeModal === "services"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+        services={services}
+        deletingServiceId={deletingServiceId}
+        onAdd={handleOpenAddService}
+        onEdit={handleOpenEditService}
+        onDeleteRequest={setConfirmDeleteId}
+      />
+
+      <ServiceFormModal
+        isOpen={isServiceFormOpen}
+        onOpenChange={setIsServiceFormOpen}
+        isEditing={!!editingServiceId}
+        form={serviceForm}
+        setForm={setServiceForm}
+        isSaving={isSavingService}
         onSave={handleSaveService}
-      >
-        <div className="grid gap-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">Title</Label>
-            <Input id="title" value={serviceFormData.title} onChange={(e) => setServiceFormData({ ...serviceFormData, title: e.target.value })} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="description" className="text-right mt-3">Description</Label>
-            <Textarea id="description" rows={3} value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="iconName" className="text-right">Icon Name</Label>
-            <Input id="iconName" value={serviceFormData.iconName} onChange={(e) => setServiceFormData({ ...serviceFormData, iconName: e.target.value })} className="col-span-3" placeholder="e.g. Palette, Code" />
-          </div>
-        </div>
-      </GlobalModal>
+      />
 
-      {/* 3. About Us Section */}
-      <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
-        <CardHeader>
-          <CardTitle>About Section</CardTitle>
-          <CardDescription>Manage the profile bio, headers, and image.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="aboutImageUrl">Profile Picture URL</Label>
-            <div className="flex gap-2">
-              <Input id="aboutImageUrl" name="aboutImageUrl" value={formData.aboutImageUrl} onChange={handleChange} placeholder="https://..." />
-              <Button variant="outline">Upload</Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Upload a new profile photo or paste a URL.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="aboutTitle">Section Title</Label>
-              <Input id="aboutTitle" name="aboutTitle" value={formData.aboutTitle} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aboutSubtitle">Section Subtitle</Label>
-              <Input id="aboutSubtitle" name="aboutSubtitle" value={formData.aboutSubtitle} onChange={handleChange} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="aboutName">Profile Name</Label>
-              <Input id="aboutName" name="aboutName" value={formData.aboutName} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aboutRole">Role / Title</Label>
-              <Input id="aboutRole" name="aboutRole" value={formData.aboutRole} onChange={handleChange} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="aboutBio">Biography</Label>
-            <Textarea id="aboutBio" name="aboutBio" rows={4} value={formData.aboutBio} onChange={handleChange} />
-          </div>
-          <Button onClick={() => handleSaveSection("About Info")} className="w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" /> Save About Info
-          </Button>
-        </CardContent>
-      </Card>
+      <DeleteConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+        serviceTitle={services.find((s) => s.id === confirmDeleteId)?.title}
+        onConfirm={handleConfirmDelete}
+      />
 
-      {/* 4. Contact Section */}
-      <Card className="shadow-none border border-zinc-200/60 dark:border-zinc-800/60">
-        <CardHeader>
-          <CardTitle>Contact Section</CardTitle>
-          <CardDescription>Update headers and official contact details.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="contactTitle">Section Title</Label>
-              <Input id="contactTitle" name="contactTitle" value={formData.contactTitle} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contactSubtitle">Section Subtitle</Label>
-              <Input id="contactSubtitle" name="contactSubtitle" value={formData.contactSubtitle} onChange={handleChange} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4 mt-2">
-            <div className="space-y-2">
-              <Label htmlFor="contactEmail">Email Address</Label>
-              <Input id="contactEmail" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contactPhone">Phone Number</Label>
-              <Input id="contactPhone" name="contactPhone" value={formData.contactPhone} onChange={handleChange} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="contactLocation">Location</Label>
-            <Input id="contactLocation" name="contactLocation" value={formData.contactLocation} onChange={handleChange} />
-          </div>
-          <Button onClick={() => handleSaveSection("Contact Info")} className="w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" /> Save Contact Info
-          </Button>
-        </CardContent>
-      </Card>
+      <AboutModal
+        isOpen={activeModal === "about"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+        aboutData={aboutData}
+        setAboutData={setAboutData}
+        isSaving={isSavingAbout}
+        onSave={handleSaveAbout}
+      />
+
+      <ContactModal
+        isOpen={activeModal === "contact"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+        contactData={contactData}
+        setContactData={setContactData}
+        isSaving={isSavingContact}
+        onSave={handleSaveContact}
+      />
 
     </div>
   );

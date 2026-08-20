@@ -11,7 +11,8 @@ import {
   Building2,
   ChevronRight,
   ChevronLeft,
-  Menu
+  Menu,
+  Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -27,6 +28,11 @@ const sidebarItems = [
     name: "Home",
     href: "/admin/home",
     icon: Home,
+  },
+  {
+    name: "Messages",
+    href: "/admin/messages",
+    icon: Mail,
   },
   {
     name: "Products",

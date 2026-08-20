@@ -1,69 +1,101 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import { Check, Loader2, Code, Layout, Palette, Megaphone, Smartphone, Server } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Loader2 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 
-const SERVICES = [
-  {
-    title: "Web Development",
-    description: "Building robust, scalable, and responsive web applications using cutting-edge technologies.",
-    icon: <Code className="w-8 h-8 text-zinc-950 dark:text-white" />,
-  },
-  {
-    title: "UI/UX Design",
-    description: "Crafting intuitive and engaging user experiences with modern aesthetics and user-centered design.",
-    icon: <Palette className="w-8 h-8 text-blue-500" />,
-  },
-  {
-    title: "Mobile App Development",
-    description: "Developing cross-platform mobile applications that provide seamless experiences on all devices.",
-    icon: <Smartphone className="w-8 h-8 text-purple-500" />,
-  },
-  {
-    title: "Frontend Engineering",
-    description: "Creating highly interactive and performant front-end interfaces using React and Next.js.",
-    icon: <Layout className="w-8 h-8 text-amber-500" />,
-  },
-  {
-    title: "Backend Solutions",
-    description: "Designing secure and scalable server-side architectures, APIs, and database structures.",
-    icon: <Server className="w-8 h-8 text-red-500" />,
-  },
-  {
-    title: "Digital Marketing",
-    description: "Enhancing brand presence and driving growth through data-driven digital marketing strategies.",
-    icon: <Megaphone className="w-8 h-8 text-emerald-500" />,
-  },
-];
+import { homeService } from "@/services/homeService";
+import { contactService } from "@/services/contactService";
+import { resolveMediaUrl } from "@/lib/api";
+import { HeroData, ServiceData, AboutUsData } from "@/types/home";
+import { DEFAULT_HERO, DEFAULT_ABOUT, DEFAULT_SERVICES, parseSocialLinks } from "@/lib/constants/homeDefaults";
+import { toast } from "react-hot-toast";
 
 export default function Home() {
+  const [hero, setHero] = useState<HeroData>(DEFAULT_HERO);
+  const [about, setAbout] = useState<AboutUsData>(DEFAULT_ABOUT);
+  const [servicesList, setServicesList] = useState<ServiceData[]>(DEFAULT_SERVICES);
+
+  // Contact Form State (matches ContactMessageRequest schema)
   const [formState, setFormState] = useState({
     name: "",
     email: "",
-    budget: "Select Budget...",
+    phone: "",
     message: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  // Helper to dynamically render Lucide icons by name string
+  const renderServiceIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as any)[iconName || "Code"];
+    if (IconComponent) {
+      return <IconComponent className="w-8 h-8 text-zinc-950 dark:text-white" />;
+    }
+    return <LucideIcons.Code className="w-8 h-8 text-zinc-950 dark:text-white" />;
+  };
+
+  // Fetch page configuration on mount
+  useEffect(() => {
+    const fetchPageData = async () => {
+      try {
+        const [heroRes, aboutRes, servicesRes] = await Promise.all([
+          homeService.getHero(),
+          homeService.getAboutUs(),
+          homeService.getActiveServices()
+        ]);
+
+        if (heroRes.success && heroRes.data) {
+          setHero(heroRes.data);
+        }
+        if (aboutRes.success && aboutRes.data) {
+          setAbout(aboutRes.data);
+        }
+        if (servicesRes.success && Array.isArray(servicesRes.data) && servicesRes.data.length > 0) {
+          setServicesList(servicesRes.data);
+        } else {
+          setServicesList(DEFAULT_SERVICES);
+        }
+      } catch (error) {
+        console.error("Failed to load page content from server, using default assets:", error);
+        setServicesList(DEFAULT_SERVICES);
+      }
+    };
+    fetchPageData();
+  }, []);
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formState.name || !formState.email || !formState.message) {
-      alert("Please fill in all fields.");
+    if (!formState.name.trim() || !formState.email.trim() || !formState.message.trim()) {
+      toast.error("Please fill in all required fields.");
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setFormState({
-        name: "",
-        email: "",
-        budget: "Select Budget...",
-        message: ""
+    try {
+      const res = await contactService.submitMessage({
+        name: formState.name,
+        email: formState.email,
+        phone: formState.phone || undefined,
+        message: formState.message,
       });
-    }, 1500);
+
+      if (res.success) {
+        setIsSuccess(true);
+        toast.success("Your message has been sent successfully!");
+        setFormState({
+          name: "",
+          email: "",
+          phone: "",
+          message: ""
+        });
+      } else {
+        toast.error(res.message || "Failed to send message.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -72,22 +104,22 @@ export default function Home() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(0,0,0,0.01),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.03),transparent_50%)] pointer-events-none" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(194,255,61,0.01),transparent_50%)] pointer-events-none" />
 
-      <div className="container mx-auto px-4 pt-4 pb-12 lg:pt-8 lg:pb-16 max-w-5xl relative z-10 flex flex-col gap-12">
+      <div className="container mx-auto px-4 pt-4 pb-12 lg:pt-8 lg:pb-16 max-w-5xl relative z-10 flex flex-col gap-12 animate-in fade-in duration-500">
 
         {/* ================= HERO SECTION ================= */}
         <section id="home" className="flex flex-col items-center text-center scroll-mt-24">
-          <Image
-            src="/BusinessBearLogo.png"
-            alt="Business Bear Logo"
-            width={400}
-            height={100}
-            className="h-12 md:h-16 w-auto object-contain dark:invert dark:hue-rotate-180 mb-4"
-            priority
-          />
+          <div className="relative h-14 md:h-18 w-72 mb-5">
+            <img
+              src={resolveMediaUrl(hero.logoUrl)}
+              alt="Business Bear Logo"
+              className="h-full w-full object-contain mx-auto dark:invert dark:hue-rotate-180 transition-all duration-300"
+            />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-950 dark:text-white mb-3">
+            {hero.title}
+          </h1>
           <p className="text-zinc-600 dark:text-zinc-400 text-base md:text-lg max-w-2xl leading-relaxed font-light">
-            Welcome to our digital agency where innovation meets aesthetics.
-            We specialize in transforming complex challenges into elegant, robust, and intuitive software solutions.
-            Partner with us to elevate your brand's digital presence and build scalable products that your users will love.
+            {hero.description}
           </p>
         </section>
 
@@ -100,13 +132,13 @@ export default function Home() {
             <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-base">What we can do for you</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
-            {SERVICES.map((service, idx) => (
+            {servicesList.map((service) => (
               <div
-                key={idx}
+                key={service.id}
                 className="group p-6 rounded-2xl bg-card border border-zinc-200 dark:border-zinc-800/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-start gap-3"
               >
                 <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <div className="scale-75">{service.icon}</div>
+                  <div className="scale-75">{renderServiceIcon(service.iconName)}</div>
                 </div>
                 <h3 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">
                   {service.title}
@@ -129,56 +161,40 @@ export default function Home() {
           </div>
           <div className="bg-card rounded-3xl p-6 md:p-8 shadow-xl border border-zinc-100 dark:border-zinc-800/80 flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
             <div className="shrink-0 relative w-40 h-40 md:w-48 md:h-48 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 shadow-inner group border border-zinc-200 dark:border-zinc-800">
-              <Image
-                src="/ProfilePicture.png"
+              <img
+                src={resolveMediaUrl(about.avatarUrl)}
                 alt="Profile Avatar"
-                fill
-                className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out grayscale"
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out grayscale"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 pointer-events-none" />
             </div>
             <div className="flex-1 text-center md:text-left flex flex-col justify-center h-full pt-1">
               <h3 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-white mb-1.5">
-                Hasibul Hasan
+                {about.fullName}
               </h3>
               <p className="text-zinc-500 dark:text-white font-bold tracking-wider uppercase text-[10px] mb-4">
-                Lead Software Engineer & Designer
+                {about.designation}
               </p>
               <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed mb-6">
-                With over a decade of experience in software architecture and interactive design,
-                I focus on bridging the gap between engineering and art. My mission is to build digital products
-                that are not only extremely performant and scalable but also deeply engaging and visually breathtaking.
+                {about.bio}
               </p>
-              <div className="flex items-center justify-center md:justify-start gap-3">
-                {/* Socials */}
-                {[
-                  {
-                    icon: (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                      </svg>
-                    ),
-                    href: "#"
-                  },
-                  {
-                    icon: (
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                      </svg>
-                    ),
-                    href: "#"
-                  }
-                ].map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors p-2.5 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:scale-110 active:scale-95 duration-200"
-                  >
-                    {social.icon}
-                  </a>
-                ))}
+              <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
+                {/* Dynamic Social Links */}
+                {parseSocialLinks(about.socialLinksJson).map((social, index) => {
+                  const IconComp = (LucideIcons as Record<string, any>)[social.iconName] || LucideIcons.Globe;
+                  return (
+                    <a
+                      key={social.id || index}
+                      href={social.url || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={social.label || social.iconName}
+                      className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-all p-2.5 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:scale-110 active:scale-95 duration-200 border border-zinc-200/60 dark:border-zinc-800/60 flex items-center justify-center"
+                    >
+                      <IconComp className="w-4 h-4" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -208,31 +224,31 @@ export default function Home() {
 
               <div className="flex flex-col gap-5 mt-2">
                 <div className="flex items-start gap-4 group">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-950 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-955 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
                   </div>
                   <div className="flex flex-col justify-center h-10">
                     <h4 className="font-bold text-zinc-900 dark:text-white text-sm">Email</h4>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">hello@businessbear.com</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">{about.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4 group">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-950 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-955 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                     </svg>
                   </div>
                   <div className="flex flex-col justify-center h-10">
                     <h4 className="font-bold text-zinc-900 dark:text-white text-sm">Phone</h4>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">+1 (555) 123-4567</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">{about.phone}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4 group">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-950 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-zinc-955 dark:group-hover:bg-white transition-all duration-300 text-zinc-900 dark:text-white group-hover:text-white dark:group-hover:text-black shadow-sm">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -240,7 +256,7 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col justify-center h-10">
                     <h4 className="font-bold text-zinc-900 dark:text-white text-sm">Location</h4>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">123 Innovation Drive, NY</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-0.5">{about.location}</p>
                   </div>
                 </div>
               </div>
@@ -255,7 +271,7 @@ export default function Home() {
             <div className="lg:w-7/12">
               {isSuccess ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-center animate-fade-in">
-                  <div className="w-16 h-16 rounded-full bg-zinc-950/10 dark:bg-white/10 border border-zinc-950/30 dark:border-white/30 flex items-center justify-center text-zinc-950 dark:text-white mb-5 shadow-lg shadow-zinc-950/5 dark:shadow-white/5">
+                  <div className="w-16 h-16 rounded-full bg-zinc-955/10 dark:bg-white/10 border border-zinc-955/30 dark:border-white/30 flex items-center justify-center text-zinc-955 dark:text-white mb-5 shadow-lg shadow-zinc-955/5 dark:shadow-white/5">
                     <Check className="w-8 h-8" />
                   </div>
                   <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
@@ -275,7 +291,7 @@ export default function Home() {
                 <form onSubmit={handleFormSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">
+                      <label className="text-[10px] font-bold text-zinc-505 dark:text-zinc-400 uppercase tracking-widest pl-1">
                         Name
                       </label>
                       <input
@@ -284,11 +300,11 @@ export default function Home() {
                         value={formState.name}
                         onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                         placeholder="Your Name"
-                        className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200"
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-955 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-955 dark:focus:border-white focus:ring-1 focus:ring-zinc-955/20 dark:focus:ring-white/30 transition-all duration-200"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">
+                      <label className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-widest pl-1">
                         Email
                       </label>
                       <input
@@ -297,37 +313,26 @@ export default function Home() {
                         value={formState.email}
                         onChange={(e) => setFormState({ ...formState, email: e.target.value })}
                         placeholder="hello@example.com"
-                        className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200"
+                        className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-955 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-955 dark:focus:border-white focus:ring-1 focus:ring-zinc-955/20 dark:focus:ring-white/30 transition-all duration-200"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">
-                      Budget
+                      Phone Number (Optional)
                     </label>
-                    <div className="relative">
-                      <select
-                        value={formState.budget}
-                        onChange={(e) => setFormState({ ...formState, budget: e.target.value })}
-                        className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200 appearance-none cursor-pointer"
-                      >
-                        <option disabled className="bg-white dark:bg-zinc-950 text-zinc-400 dark:text-zinc-500">Select Budget...</option>
-                        <option className="bg-white dark:bg-zinc-950 text-zinc-950 dark:text-white" value="less_5k">Less than $5,000</option>
-                        <option className="bg-white dark:bg-zinc-950 text-zinc-950 dark:text-white" value="5k_15k">$5,000 - $15,000</option>
-                        <option className="bg-white dark:bg-zinc-950 text-zinc-950 dark:text-white" value="15k_50k">$15,000 - $50,000</option>
-                        <option className="bg-white dark:bg-zinc-950 text-zinc-950 dark:text-white" value="more_50k">$50,000+</option>
-                      </select>
-                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
+                    <input
+                      type="tel"
+                      value={formState.phone}
+                      onChange={(e) => setFormState({ ...formState, phone: e.target.value })}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200"
+                    />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">
+                    <label className="text-[10px] font-bold text-zinc-555 dark:text-zinc-400 uppercase tracking-widest pl-1">
                       Message
                     </label>
                     <textarea
@@ -336,14 +341,14 @@ export default function Home() {
                       value={formState.message}
                       onChange={(e) => setFormState({ ...formState, message: e.target.value })}
                       placeholder="Tell us about your project..."
-                      className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-950 dark:focus:border-white focus:ring-1 focus:ring-zinc-950/20 dark:focus:ring-white/30 transition-all duration-200 resize-none"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3.5 py-2.5 text-xs text-zinc-955 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-955 dark:focus:border-white focus:ring-1 focus:ring-zinc-955/20 dark:focus:ring-white/30 transition-all duration-200 resize-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-1 bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 disabled:bg-zinc-800/50 dark:disabled:bg-white/50 text-white dark:text-black font-bold py-3 rounded-xl transition-all duration-200 shadow-lg shadow-zinc-950/10 dark:shadow-white/10 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full mt-1 bg-zinc-955 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 disabled:bg-zinc-800/50 dark:disabled:bg-white/50 text-white dark:text-black font-bold py-3 rounded-xl transition-all duration-200 shadow-lg shadow-zinc-955/10 dark:shadow-white/10 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isSubmitting ? (
                       <>

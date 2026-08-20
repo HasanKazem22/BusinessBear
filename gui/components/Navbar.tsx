@@ -74,7 +74,7 @@ export function Navbar() {
               alt="Business Bear Logo"
               width={150}
               height={40}
-              className="h-9 w-auto object-contain dark:invert dark:hue-rotate-180"
+              className="h-6 w-auto object-contain dark:invert dark:hue-rotate-180"
               priority
             />
           </Link>

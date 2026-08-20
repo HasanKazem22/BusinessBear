@@ -70,21 +70,19 @@ export default function UserManagementPage() {
     <div className="flex flex-col gap-6 w-full h-full p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 dark:bg-zinc-900/50 p-6 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-xl">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
-            <UserCog className="w-8 h-8 text-indigo-500" />
-            User Management
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-            Manage system users, assign roles, and control access.
-          </p>
-        </div>
+      <div className="flex flex-col items-center text-center max-w-xl mx-auto space-y-1.5 pt-2 pb-2">
+        <h1 className="text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center justify-center gap-2">
+          <UserCog className="w-5 h-5 text-zinc-900 dark:text-white" />
+          User Access & Role Management
+        </h1>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+          Manage system users, assign administrative roles, control access permissions, and refresh user data.
+        </p>
         <button
           onClick={fetchUsers}
-          className="flex items-center justify-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white px-4 py-2 rounded-xl transition-colors font-medium text-sm"
+          className="mt-3 flex items-center justify-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white px-4 py-2 rounded-xl transition-colors font-semibold text-xs border border-zinc-200 dark:border-zinc-700"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh Data
         </button>
       </div>
@@ -107,34 +105,38 @@ export default function UserManagementPage() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase bg-zinc-50 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
                 <tr>
-                  <th className="px-6 py-4 font-bold tracking-wider">User</th>
-                  <th className="px-6 py-4 font-bold tracking-wider">Contact</th>
-                  <th className="px-6 py-4 font-bold tracking-wider">Roles</th>
-                  <th className="px-6 py-4 font-bold tracking-wider">Status</th>
-                  <th className="px-6 py-4 font-bold tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider text-center w-12">SL</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider">User</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider">Contact</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider">Roles</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider">Status</th>
+                  <th className="px-4 py-2.5 font-bold tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                {users.map((user) => (
+                {users.map((user, index) => (
                   <tr key={user.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 font-bold">
+                    <td className="px-4 py-2.5 font-mono text-xs font-semibold text-zinc-400 text-center">
+                      {String(index + 1).padStart(2, '0')}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 font-bold text-xs">
                           {user.fullName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-zinc-900 dark:text-white">
+                          <div className="font-bold text-zinc-900 dark:text-white text-xs md:text-sm">
                             {user.fullName}
                           </div>
-                          <div className="text-xs text-zinc-500 mt-0.5">
+                          <div className="text-[11px] text-zinc-500">
                             @{user.username}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-zinc-900 dark:text-zinc-300">{user.email || '—'}</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">{user.mobile}</div>
+                    <td className="px-4 py-2.5">
+                      <div className="text-zinc-900 dark:text-zinc-300 text-xs">{user.email || '—'}</div>
+                      <div className="text-[11px] text-zinc-500">{user.mobile}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1.5">

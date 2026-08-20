@@ -65,10 +65,9 @@ export function ProductConfigTab() {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Manage Products</h2>
-        <Button onClick={handleOpenNew}>
-          <Plus className="h-4 w-4 mr-2" /> Add Product
+      <div className="flex justify-end items-center mb-2">
+        <Button onClick={handleOpenNew} size="sm" className="h-8 text-xs font-semibold">
+          <Plus className="h-3.5 w-3.5 mr-1" /> Add Product
         </Button>
         <GlobalModal
           isOpen={isDialogOpen}
@@ -77,65 +76,114 @@ export function ProductConfigTab() {
           description="Make changes to your product here. Click save when you're done."
           onSave={handleSave}
         >
-          <div className="grid gap-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="col-span-3" />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Product Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. iPhone 17"
+                className="rounded-md"
+              />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">Price</Label>
-              <Input id="price" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="col-span-3" />
+
+            <div className="space-y-1.5">
+              <Label htmlFor="brand" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Brand Name</Label>
+              <Input
+                id="brand"
+                value={formData.brandLogo}
+                onChange={(e) => setFormData({ ...formData, brandLogo: e.target.value })}
+                placeholder="e.g. Apple, Samsung, realme"
+                className="rounded-md"
+              />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Old Price</Label>
-              <Input id="originalPrice" value={formData.originalPrice} onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="brand" className="text-right">Brand</Label>
-              <Input id="brand" value={formData.brandLogo} onChange={(e) => setFormData({ ...formData, brandLogo: e.target.value })} className="col-span-3" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="price" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Price (Tk.)</Label>
+                <Input
+                  id="price"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="e.g. 1,47,499"
+                  className="rounded-md"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="originalPrice" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Old Price (Optional)</Label>
+                <Input
+                  id="originalPrice"
+                  value={formData.originalPrice}
+                  onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                  placeholder="e.g. 1,79,999"
+                  className="rounded-md"
+                />
+              </div>
             </div>
           </div>
         </GlobalModal>
       </div>
 
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Brand</TableHead>
-              <TableHead>Price (Tk.)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12 text-center">SL</TableHead>
+            <TableHead>Product Name</TableHead>
+            <TableHead>Brand</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((prod, index) => (
+            <TableRow key={prod.id} className="group">
+              <TableCell className="font-mono text-xs font-semibold text-zinc-400 text-center">
+                {String(index + 1).padStart(2, '0')}
+              </TableCell>
+              <TableCell className="font-bold text-zinc-900 dark:text-white">
+                {prod.name}
+              </TableCell>
+              <TableCell>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/50 dark:border-zinc-700/50">
+                  {prod.brandLogo || "Generic"}
+                </span>
+              </TableCell>
+              <TableCell className="font-semibold text-zinc-900 dark:text-white">
+                ৳ {prod.price}
+                {prod.originalPrice && (
+                  <span className="ml-2 text-xs text-zinc-400 line-through">৳ {prod.originalPrice}</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => handleOpenEdit(prod)}
+                    className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex items-center justify-center transition-colors"
+                    title="Edit Product"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(prod.id)}
+                    className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors"
+                    title="Delete Product"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((prod) => (
-              <TableRow key={prod.id}>
-                <TableCell className="font-medium">{prod.name}</TableCell>
-                <TableCell>{prod.brandLogo}</TableCell>
-                <TableCell>{prod.price}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(prod)}>
-                      <Pencil className="h-4 w-4 text-blue-500" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(prod.id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {products.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  No products found. Add some!
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          ))}
+          {products.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center text-zinc-500 py-10">
+                No products found. Click "+ Add Product" to get started.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
