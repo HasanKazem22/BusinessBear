@@ -36,8 +36,15 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/home/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/services/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/products/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/real-assets/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/contact-messages").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/real-assets/*/booking").permitAll()
+                .anyRequest().permitAll() // Temporary open for dev flexibility or authenticated
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
