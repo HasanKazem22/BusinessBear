@@ -3,56 +3,58 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Settings,
-  Home,
-  Building2,
-  ChevronRight,
-  ChevronLeft,
-  Menu,
-  Mail
-} from "lucide-react";
+  LuLayoutDashboard,
+  LuPackage,
+  LuUsers,
+  LuSettings,
+  LuHouse,
+  LuBuilding2,
+  LuChevronRight,
+  LuChevronLeft,
+  LuMail,
+  LuShield
+} from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 const sidebarItems = [
   {
     name: "Dashboard",
     href: "/admin",
-    icon: LayoutDashboard,
+    icon: LuLayoutDashboard,
+    requirePermission: null,
   },
   {
     name: "Home",
     href: "/admin/home",
-    icon: Home,
+    icon: LuHouse,
+    requirePermission: "home.isHomePage",
   },
   {
     name: "Messages",
     href: "/admin/messages",
-    icon: Mail,
+    icon: LuMail,
+    requirePermission: "contactMessage.isMessagePage",
   },
   {
     name: "Products",
     href: "/admin/products",
-    icon: Package,
+    icon: LuPackage,
+    requirePermission: "product.isProductPage",
   },
   {
     name: "Real Assets",
     href: "/admin/assets",
-    icon: Building2,
+    icon: LuBuilding2,
+    requirePermission: "realAsset.isRealAssetPage",
   },
   {
-    name: "User Management",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    name: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
+    name: "User & Role Setup",
+    href: "/admin/user-role-setup",
+    icon: LuShield,
+    requirePermission: "userRoleSetup.isUserRolePage",
   },
 ];
 
@@ -63,6 +65,14 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { canAccess, hasRole } = useAuth();
+
+  // Dynamic Sidebar Filtering based on Server RolePermission Tree
+  const filteredSidebarItems = sidebarItems.filter((item) => {
+    if (hasRole("ROLE_ADMIN")) return true; // Super admin sees all
+    if (!item.requirePermission) return true;
+    return canAccess(item.requirePermission);
+  });
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden relative">
@@ -70,11 +80,11 @@ export default function AdminLayout({
       <aside
         className={cn(
           "border-r border-border bg-muted/30 hidden md:flex flex-col transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-16" : "w-48"
+          isCollapsed ? "w-16" : "w-52"
         )}
       >
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {sidebarItems.map((item) => {
+          {filteredSidebarItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
@@ -91,29 +101,29 @@ export default function AdminLayout({
               >
                 <div className="flex items-center gap-3">
                   <item.icon className="h-4 w-4 shrink-0" />
-                  {!isCollapsed && <span>{item.name}</span>}
+                  {!isCollapsed && <span className="truncate">{item.name}</span>}
                 </div>
-                {!isCollapsed && isActive && <ChevronRight className="h-4 w-4" />}
+                {!isCollapsed && isActive && <LuChevronRight className="h-4 w-4" />}
               </Link>
             );
           })}
         </nav>
       </aside>
 
-      {/* Floating Toggle Button (Moved outside sidebar to prevent blinking) */}
+      {/* Floating Toggle Button */}
       <Button
         variant="secondary"
         size="icon"
         onClick={() => setIsCollapsed(!isCollapsed)}
         className={cn(
           "absolute top-1/2 -translate-y-1/2 h-6 w-6 rounded-full border border-border shadow-md z-50 transition-all duration-300 ease-in-out bg-background hover:scale-110 active:scale-95",
-          isCollapsed ? "left-[52px]" : "left-[180px]"
+          isCollapsed ? "left-[52px]" : "left-[196px]"
         )}
       >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {isCollapsed ? <LuChevronRight className="h-3 w-3" /> : <LuChevronLeft className="h-3 w-3" />}
       </Button>
 
-      {/* Main Content Area (Fixed scrollable area) */}
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto bg-background p-8">
         <div className="max-w-6xl mx-auto">
           {children}

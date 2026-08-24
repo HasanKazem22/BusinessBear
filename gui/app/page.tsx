@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Loader2 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { LuCheck, LuLoaderCircle } from "react-icons/lu";
 
 import { homeService } from "@/services/homeService";
 import { contactService } from "@/services/contactService";
 import { resolveMediaUrl } from "@/lib/api";
 import { HeroData, ServiceData, AboutUsData } from "@/types/home";
-import { DEFAULT_HERO, DEFAULT_ABOUT, DEFAULT_SERVICES, parseSocialLinks } from "@/lib/constants/homeDefaults";
+import { defaultHero, defaultAbout, defaultServices, parseSocialLinks } from "@/lib/constants/homeDefaults";
+import { socialIconMap, serviceIconMap } from "@/lib/constants/icons";
 import { toast } from "react-hot-toast";
 
 export default function Home() {
-  const [hero, setHero] = useState<HeroData>(DEFAULT_HERO);
-  const [about, setAbout] = useState<AboutUsData>(DEFAULT_ABOUT);
-  const [servicesList, setServicesList] = useState<ServiceData[]>(DEFAULT_SERVICES);
+  const [hero, setHero] = useState<HeroData>(defaultHero);
+  const [about, setAbout] = useState<AboutUsData>(defaultAbout);
+  const [servicesList, setServicesList] = useState<ServiceData[]>(defaultServices);
 
   // Contact Form State (matches ContactMessageRequest schema)
   const [formState, setFormState] = useState({
@@ -28,11 +28,8 @@ export default function Home() {
 
   // Helper to dynamically render Lucide icons by name string
   const renderServiceIcon = (iconName: string) => {
-    const IconComponent = (LucideIcons as any)[iconName || "Code"];
-    if (IconComponent) {
-      return <IconComponent className="w-8 h-8 text-zinc-950 dark:text-white" />;
-    }
-    return <LucideIcons.Code className="w-8 h-8 text-zinc-950 dark:text-white" />;
+    const IconComponent = serviceIconMap[iconName || "Code"] || serviceIconMap.Code;
+    return <IconComponent className="w-8 h-8 text-zinc-950 dark:text-white" />;
   };
 
   // Fetch page configuration on mount
@@ -54,11 +51,11 @@ export default function Home() {
         if (servicesRes.success && Array.isArray(servicesRes.data) && servicesRes.data.length > 0) {
           setServicesList(servicesRes.data);
         } else {
-          setServicesList(DEFAULT_SERVICES);
+          setServicesList(defaultServices);
         }
       } catch (error) {
         console.error("Failed to load page content from server, using default assets:", error);
-        setServicesList(DEFAULT_SERVICES);
+        setServicesList(defaultServices);
       }
     };
     fetchPageData();
@@ -181,7 +178,7 @@ export default function Home() {
               <div className="flex items-center justify-center md:justify-start gap-3 flex-wrap">
                 {/* Dynamic Social Links */}
                 {parseSocialLinks(about.socialLinksJson).map((social, index) => {
-                  const IconComp = (LucideIcons as Record<string, any>)[social.iconName] || LucideIcons.Globe;
+                  const IconComp = socialIconMap[social.iconName] || socialIconMap.Globe;
                   return (
                     <a
                       key={social.id || index}
@@ -272,7 +269,7 @@ export default function Home() {
               {isSuccess ? (
                 <div className="flex flex-col items-center justify-center h-full py-8 text-center animate-fade-in">
                   <div className="w-16 h-16 rounded-full bg-zinc-955/10 dark:bg-white/10 border border-zinc-955/30 dark:border-white/30 flex items-center justify-center text-zinc-955 dark:text-white mb-5 shadow-lg shadow-zinc-955/5 dark:shadow-white/5">
-                    <Check className="w-8 h-8" />
+                    <LuCheck className="w-8 h-8" />
                   </div>
                   <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
                     Message Sent!
@@ -352,7 +349,7 @@ export default function Home() {
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <LuLoaderCircle className="w-3 h-3 animate-spin" />
                         <span className="text-xs">Sending...</span>
                       </>
                     ) : (

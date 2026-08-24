@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { CloudUpload, Loader2, ImageIcon, RefreshCw } from "lucide-react";
+import { LuCloudUpload, LuLoader, LuImage, LuRefreshCw } from "react-icons/lu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-hot-toast";
@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-export type ImageUploaderSize    = "sm" | "md" | "lg";
-export type ImageUploaderVariant = "button" | "card" | "avatar";
+export type ImageInputSize    = "sm" | "md" | "lg";
+export type ImageInputVariant = "button" | "card" | "avatar";
 
-export interface ImageUploaderProps {
+export interface ImageInputProps {
   /** Current image URL (controlled) */
   value?: string;
   /**
@@ -25,9 +25,9 @@ export interface ImageUploaderProps {
   /** Fires with the new URL after upload or when the user pastes a URL */
   onChange?: (url: string) => void;
   /** Thumbnail / avatar size — only used in button & avatar variants */
-  size?: ImageUploaderSize;
+  size?: ImageInputSize;
   /** Display layout */
-  variant?: ImageUploaderVariant;
+  variant?: ImageInputVariant;
   /** Disables all interaction */
   disabled?: boolean;
   /** Optional field label rendered above the control */
@@ -44,29 +44,29 @@ export interface ImageUploaderProps {
 // ─────────────────────────────────────────────────────────────────────────────
 // Size maps (button + avatar only)
 // ─────────────────────────────────────────────────────────────────────────────
-const thumbSize: Record<ImageUploaderSize, string> = {
+const thumbSize: Record<ImageInputSize, string> = {
   sm: "w-9 h-9",
   md: "w-12 h-12",
   lg: "w-16 h-16",
 };
 
-const avatarSize: Record<ImageUploaderSize, string> = {
+const avatarSize: Record<ImageInputSize, string> = {
   sm: "w-16 h-16",
   md: "w-24 h-24",
   lg: "w-32 h-32",
 };
 
 /** Square size for the card variant's left-side thumbnail zone */
-const cardSquareSize: Record<ImageUploaderSize, string> = {
+const cardSquareSize: Record<ImageInputSize, string> = {
   sm: "w-[72px] h-[72px]",
   md: "w-[88px] h-[88px]",
   lg: "w-[108px] h-[108px]",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ImageUploader
+// ImageInput
 // ─────────────────────────────────────────────────────────────────────────────
-export function ImageUploader({
+export function ImageInput({
   value = "",
   onUpload,
   onChange,
@@ -78,7 +78,7 @@ export function ImageUploader({
   urlPlaceholder = "https://example.com/image.png",
   maxSizeMb = 5,
   className,
-}: ImageUploaderProps) {
+}: ImageInputProps) {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -146,8 +146,8 @@ export function ImageUploader({
           className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading
-            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            : <CloudUpload className="w-3.5 h-3.5" />}
+            ? <LuLoader className="w-3.5 h-3.5 animate-spin" />
+            : <LuCloudUpload className="w-3.5 h-3.5" />}
           {isUploading ? "Uploading…" : value ? "Change" : "Upload"}
         </button>
 
@@ -173,12 +173,12 @@ export function ImageUploader({
         >
           {value
             ? <img src={resolvedUrl} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
-            : <ImageIcon className="w-1/3 h-1/3 text-zinc-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+            : <LuImage className="w-1/3 h-1/3 text-zinc-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
 
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute inset-0 bg-black/55 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             {isUploading
-              ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-              : <RefreshCw className="w-4 h-4 text-white" />}
+              ? <LuLoader className="w-5 h-5 text-white animate-spin" />
+              : <LuRefreshCw className="w-4 h-4 text-white" />}
           </div>
         </button>
 
@@ -219,15 +219,15 @@ export function ImageUploader({
               />
               {/* Change overlay */}
               <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                <RefreshCw className="w-3.5 h-3.5 text-white" />
+                <LuRefreshCw className="w-3.5 h-3.5 text-white" />
                 <span className="text-[9px] font-semibold text-white leading-none">Change</span>
               </div>
             </>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
               {isUploading
-                ? <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-                : <CloudUpload className="w-5 h-5 text-zinc-400" />}
+                ? <LuLoader className="w-5 h-5 text-zinc-400 animate-spin" />
+                : <LuCloudUpload className="w-5 h-5 text-zinc-400" />}
             </div>
           )}
         </button>
@@ -247,8 +247,8 @@ export function ImageUploader({
             className="mt-0.5 inline-flex items-center gap-1 self-start px-2.5 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading
-              ? <Loader2 className="w-3 h-3 animate-spin" />
-              : <CloudUpload className="w-3 h-3" />}
+              ? <LuLoader className="w-3 h-3 animate-spin" />
+              : <LuCloudUpload className="w-3 h-3" />}
             {isUploading ? "Uploading…" : value ? "Change" : "Browse"}
           </button>
         </div>
@@ -272,3 +272,6 @@ export function ImageUploader({
     </div>
   );
 }
+
+export const ImageUploader = ImageInput;
+export type ImageUploaderProps = ImageInputProps;

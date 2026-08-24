@@ -1,23 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Package, DollarSign, ArrowUpRight } from "lucide-react";
+import { LuUsers, LuPackage, LuDollarSign, LuArrowUpRight } from "react-icons/lu";
 
 const stats = [
   {
     title: "Total Users",
     value: "1,234",
-    icon: Users,
+    icon: LuUsers,
     trend: "+12%",
   },
   {
     title: "Products",
     value: "56",
-    icon: Package,
+    icon: LuPackage,
     trend: "+2",
   },
   {
     title: "Revenue",
     value: "Tk. 4,56,789",
-    icon: DollarSign,
+    icon: LuDollarSign,
     trend: "+18%",
   },
 ];
@@ -37,7 +37,7 @@ export function DashboardTab() {
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
               <div className="flex items-center text-xs text-zinc-700 dark:text-zinc-300 mt-1 font-medium">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
+                <LuArrowUpRight className="h-3 w-3 mr-1" />
                 {stat.trend} from last month
               </div>
             </CardContent>
@@ -55,7 +55,7 @@ export function DashboardTab() {
               <div key={i} className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                    <Users className="h-5 w-5" />
+                    <LuUsers className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">New User Registered</p>

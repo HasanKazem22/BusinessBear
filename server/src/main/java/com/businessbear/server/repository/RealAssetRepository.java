@@ -14,7 +14,7 @@ import java.util.List;
 public interface RealAssetRepository extends JpaRepository<RealAsset, Long>, JpaSpecificationExecutor<RealAsset> {
 
     @Query("SELECT r FROM RealAsset r WHERE " +
-           "(:query IS NULL OR LOWER(r.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(r.location) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "(CAST(:query AS string) IS NULL OR LOWER(r.title) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%')) OR LOWER(r.location) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%'))) AND " +
            "(:status IS NULL OR r.status = :status)")
     List<RealAsset> searchAssets(@Param("query") String query, @Param("status") AssetStatus status);
 

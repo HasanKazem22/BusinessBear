@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Mail, ExternalLink } from "lucide-react";
+import { LuMail, LuExternalLink } from "react-icons/lu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { GlobalModal } from "@/components/ui/global-modal";
+import { Modal } from "@/components/ui/modal";
 
 interface ContactData {
   email: string;
@@ -29,7 +29,7 @@ export function ContactModal({
   onSave,
 }: ContactModalProps) {
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Contact Us"
@@ -74,7 +74,7 @@ export function ContactModal({
         {/* Quick Inbox Link */}
         <div className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
+            <LuMail className="w-4 h-4 text-emerald-500 shrink-0" />
             <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Form Submissions
             </span>
@@ -86,11 +86,11 @@ export function ContactModal({
               size="sm"
               className="h-7 text-[11px] font-semibold gap-1"
             >
-              Open Inbox <ExternalLink className="w-3 h-3" />
+              Open Inbox <LuExternalLink className="w-3 h-3" />
             </Button>
           </Link>
         </div>
       </div>
-    </GlobalModal>
+    </Modal>
   );
 }

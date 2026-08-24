@@ -1,18 +1,18 @@
-import { Plus, Pencil, Trash2, Loader2, Layers, ToggleLeft, ToggleRight } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { LuPlus, LuPencil, LuTrash2, LuLoader, LuLayers, LuToggleLeft, LuToggleRight } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GlobalModal } from "@/components/ui/global-modal";
+import { Modal } from "@/components/ui/modal";
 import { ServiceData } from "@/types/home";
 import { cn } from "@/lib/utils";
+import { serviceIconMap } from "@/lib/constants/icons";
 
 const MAX_SERVICES = 6;
 
 /** Render any Lucide icon by PascalCase name, falling back to Layers */
 function ServiceIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (LucideIcons as Record<string, any>)[name] ?? LucideIcons.Layers;
+  const Icon = serviceIconMap[name] ?? LuLayers;
   return <Icon className={className} />;
 }
 
@@ -42,7 +42,7 @@ export function ServicesModal({
   const activeCount = services.filter((s) => s.isActive).length;
 
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Our Services"
@@ -72,7 +72,7 @@ export function ServicesModal({
           className="h-7 text-xs font-semibold gap-1 px-3"
           title={isFull ? "Maximum 6 cards reached" : "Add a new service card"}
         >
-          <Plus className="w-3 h-3" />
+          <LuPlus className="w-3 h-3" />
           Add Card
         </Button>
       </div>
@@ -90,7 +90,7 @@ export function ServicesModal({
       {/* ── Empty state ── */}
       {services.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-center">
-          <Layers className="w-8 h-8 text-zinc-300 dark:text-zinc-700 mb-2" />
+          <LuLayers className="w-8 h-8 text-zinc-300 dark:text-zinc-700 mb-2" />
           <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">No service cards yet</p>
           <p className="text-xs text-zinc-400 mt-1">Click "Add Card" above to create your first one.</p>
         </div>
@@ -142,7 +142,7 @@ export function ServicesModal({
                   disabled={deletingServiceId !== null}
                   title="Edit card"
                 >
-                  <Pencil className="h-3 w-3" />
+                  <LuPencil className="h-3 w-3" />
                 </Button>
 
                 <Button
@@ -154,8 +154,8 @@ export function ServicesModal({
                   title="Delete card"
                 >
                   {deletingServiceId === svc.id
-                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                    : <Trash2 className="h-3 w-3" />}
+                    ? <LuLoader className="h-3 w-3 animate-spin" />
+                    : <LuTrash2 className="h-3 w-3" />}
                 </Button>
               </div>
             </div>
@@ -169,7 +169,7 @@ export function ServicesModal({
               disabled={deletingServiceId !== null}
               className="flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 p-3.5 text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-300 transition-all duration-200 min-h-[120px]"
             >
-              <Plus className="w-4 h-4" />
+              <LuPlus className="w-4 h-4" />
               <span className="text-[10px] font-semibold">Add card</span>
             </button>
           ))}
@@ -181,7 +181,7 @@ export function ServicesModal({
           Maximum of {MAX_SERVICES} service cards reached. Delete a card to add a new one.
         </p>
       )}
-    </GlobalModal>
+    </Modal>
   );
 }
 
@@ -208,7 +208,7 @@ export function ServiceFormModal({
   onSave,
 }: ServiceFormModalProps) {
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title={isEditing ? "Edit Service Card" : "Add Service Card"}
@@ -281,11 +281,11 @@ export function ServiceFormModal({
             <p className="text-[10px] text-zinc-500 mt-0.5">Toggle to show or hide this card</p>
           </div>
           {form.isActive
-            ? <ToggleRight className="w-7 h-7 text-emerald-500 shrink-0" />
-            : <ToggleLeft className="w-7 h-7 text-zinc-400 shrink-0" />}
+            ? <LuToggleRight className="w-7 h-7 text-emerald-500 shrink-0" />
+            : <LuToggleLeft className="w-7 h-7 text-zinc-400 shrink-0" />}
         </button>
       </div>
-    </GlobalModal>
+    </Modal>
   );
 }
 
@@ -306,7 +306,7 @@ export function DeleteConfirmModal({
   onConfirm,
 }: DeleteConfirmModalProps) {
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Delete Service Card?"
@@ -317,12 +317,12 @@ export function DeleteConfirmModal({
       size="sm"
     >
       <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl">
-        <Trash2 className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <LuTrash2 className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
         <p className="text-sm text-red-700 dark:text-red-400">
           You are about to delete{" "}
           <strong>"{serviceTitle || "this service"}"</strong>. This will free up one slot.
         </p>
       </div>
-    </GlobalModal>
+    </Modal>
   );
 }

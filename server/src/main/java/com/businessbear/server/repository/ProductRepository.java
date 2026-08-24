@@ -13,9 +13,10 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     @Query("SELECT p FROM Product p WHERE " +
-           "(:query IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.brandLogo) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
-           "(:category IS NULL OR LOWER(p.category) = LOWER(:category))")
-    List<Product> searchProducts(@Param("query") String query, @Param("category") String category);
+           "(CAST(:query AS string) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%')) OR LOWER(p.brandLogo) LIKE LOWER(CONCAT('%', CAST(:query AS string), '%'))) AND " +
+           "(CAST(:category AS string) IS NULL OR LOWER(p.category) = LOWER(CAST(:category AS string))) AND " +
+           "(:activeOnly = false OR p.isActive = true)")
+    List<Product> searchProducts(@Param("query") String query, @Param("category") String category, @Param("activeOnly") boolean activeOnly);
 
     List<Product> findByIsAvailableTrue();
 }

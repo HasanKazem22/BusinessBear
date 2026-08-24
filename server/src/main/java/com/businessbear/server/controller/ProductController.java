@@ -24,8 +24,9 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProductDto>>> searchProducts(
             @RequestParam(required = false) String query,
-            @RequestParam(required = false) String category) {
-        List<ProductDto> products = productService.searchProducts(query, category);
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {
+        List<ProductDto> products = productService.searchProducts(query, category, activeOnly);
         return ResponseEntity.ok(ApiResponse.success(products, "Products retrieved successfully"));
     }
 

@@ -8,11 +8,11 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/90 shadow-sm"
+      className="relative w-full overflow-x-auto"
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm border-collapse", className)}
+        className={cn("w-full caption-bottom text-sm border-collapse font-sans", className)}
         {...props}
       />
     </div>
@@ -23,7 +23,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-zinc-50/80 dark:bg-zinc-950/80 border-b border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-sm", className)}
+      className={cn("bg-zinc-50/60 dark:bg-zinc-950/40 border-b border-zinc-200/80 dark:border-zinc-800/80", className)}
       {...props}
     />
   )
@@ -33,7 +33,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0 divide-y divide-zinc-200/50 dark:divide-zinc-800/50", className)}
+      className={cn("[&_tr:last-child]:border-0 divide-y divide-zinc-100 dark:divide-zinc-800/60", className)}
       {...props}
     />
   )
@@ -44,7 +44,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+        "border-t border-zinc-200 dark:border-zinc-800 bg-muted/50 font-medium [&>tr]:last:border-b-0",
         className
       )}
       {...props}
@@ -57,7 +57,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-zinc-200/40 dark:border-zinc-800/40 transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 data-[state=selected]:bg-muted",
+        "border-b border-zinc-100 dark:border-zinc-800/40 transition-colors hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 data-[state=selected]:bg-muted",
         className
       )}
       {...props}
@@ -70,7 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-9 px-4 text-left align-middle font-bold text-[11px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "h-10 px-4 text-left align-middle font-bold text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -83,7 +83,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-4 py-2 align-middle whitespace-nowrap text-zinc-800 dark:text-zinc-200 font-medium text-xs md:text-sm [&:has([role=checkbox])]:pr-0",
+        "px-4 py-3 align-middle whitespace-nowrap text-zinc-800 dark:text-zinc-200 font-medium text-xs [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Layers, UserCheck, Mail, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
+import { LuSparkles, LuLayers, LuUserCheck, LuMail, LuCircleAlert, LuRefreshCw, LuExternalLink } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
+import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
+import { Loader } from "@/components/ui/loader";
 
 import { HeroData, ServiceData, AboutUsData } from "@/types/home";
 import { homeService } from "@/services/homeService";
-import { DEFAULT_HERO, DEFAULT_ABOUT, withDefaults } from "@/lib/constants/homeDefaults";
+import { defaultHero, defaultAbout, withDefaults } from "@/lib/constants/homeDefaults";
 
 // Section Modals
 import { HeroModal } from "./home/HeroModal";
@@ -36,19 +38,19 @@ export function HomeConfigTab() {
   const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
 
   // ── Data (initial values come from shared defaults) ──
-  const [heroData, setHeroData] = useState<HeroData>(DEFAULT_HERO);
+  const [heroData, setHeroData] = useState<HeroData>(defaultHero);
 
   const [services, setServices] = useState<ServiceData[]>([]);
   const [serviceForm, setServiceForm] = useState<Partial<ServiceData>>({
     title: "", description: "", iconName: "Code", isActive: true,
   });
 
-  const [aboutData, setAboutData] = useState<AboutUsData>(DEFAULT_ABOUT);
+  const [aboutData, setAboutData] = useState<AboutUsData>(defaultAbout);
 
   const [contactData, setContactData] = useState({
-    email: DEFAULT_ABOUT.email,
-    phone: DEFAULT_ABOUT.phone,
-    location: DEFAULT_ABOUT.location,
+    email: defaultAbout.email,
+    phone: defaultAbout.phone,
+    location: defaultAbout.location,
   });
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -63,7 +65,7 @@ export function HomeConfigTab() {
       ]);
 
       if (heroRes.success) {
-        const hero = withDefaults(DEFAULT_HERO, heroRes.data);
+        const hero = withDefaults(defaultHero, heroRes.data);
         setHeroData(hero);
       }
 
@@ -72,7 +74,7 @@ export function HomeConfigTab() {
       }
 
       if (aboutRes.success) {
-        const about = withDefaults(DEFAULT_ABOUT, aboutRes.data);
+        const about = withDefaults(defaultAbout, aboutRes.data);
         setAboutData(about);
         setContactData({ email: about.email, phone: about.phone, location: about.location });
       }
@@ -95,7 +97,7 @@ export function HomeConfigTab() {
         loading: "Saving…", success: "Hero section saved!", error: (e) => e?.message || "Failed",
       });
       if (res.success) {
-        setHeroData(withDefaults(DEFAULT_HERO, res.data));
+        setHeroData(withDefaults(defaultHero, res.data));
       }
       setActiveModal(null);
     } catch { /* toast */ } finally { setIsSavingHero(false); }
@@ -109,7 +111,7 @@ export function HomeConfigTab() {
         loading: "Saving…", success: "Profile saved!", error: (e) => e?.message || "Failed",
       });
       if (res.success) {
-        const about = withDefaults(DEFAULT_ABOUT, res.data);
+        const about = withDefaults(defaultAbout, res.data);
         setAboutData(about);
         setContactData({ email: about.email, phone: about.phone, location: about.location });
       }
@@ -187,39 +189,31 @@ export function HomeConfigTab() {
   // ── Render: Loading ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="pt-2 pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 sm:p-5 flex items-center gap-4 animate-pulse">
-              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 shrink-0" />
-              <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-24" />
-            </div>
-          ))}
-        </div>
-      </div>
+      <Loader
+        text="Loading configuration..."
+        variant="inline"
+      />
     );
   }
 
   // ── Render: Error ──────────────────────────────────────────────────────────
   if (fetchError) {
     return (
-      <div className="pt-2 pb-8 flex flex-col items-center justify-center border border-dashed border-red-200 dark:border-red-900/50 rounded-2xl p-8 bg-red-50/10 text-center max-w-xl mx-auto my-10 animate-in fade-in duration-300">
-        <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Failed to Load Configuration</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4 max-w-sm leading-relaxed">{fetchError}</p>
-        <Button onClick={fetchAllData} size="sm" className="h-8 text-xs font-semibold gap-1.5">
-          <RefreshCw className="w-3.5 h-3.5" /> Retry Connection
-        </Button>
-      </div>
+      <ServerErrorCard
+        error={fetchError}
+        onRetry={fetchAllData}
+        variant="inline"
+        title="Failed to Load Configuration"
+      />
     );
   }
 
   // ── Render: Main ──────────────────────────────────────────────────────────
   const sectionCards = [
-    { id: "hero" as const, icon: <Sparkles className="w-5 h-5" />, label: "Hero Section" },
-    { id: "services" as const, icon: <Layers className="w-5 h-5" />, label: "Our Services" },
-    { id: "about" as const, icon: <UserCheck className="w-5 h-5" />, label: "About Us" },
-    { id: "contact" as const, icon: <Mail className="w-5 h-5" />, label: "Contact Us", hasInbox: true },
+    { id: "hero" as const, icon: <LuSparkles className="w-5 h-5" />, label: "Hero Section" },
+    { id: "services" as const, icon: <LuLayers className="w-5 h-5" />, label: "Our Services" },
+    { id: "about" as const, icon: <LuUserCheck className="w-5 h-5" />, label: "About Us" },
+    { id: "contact" as const, icon: <LuMail className="w-5 h-5" />, label: "Contact Us", hasInbox: true },
   ];
 
   return (
@@ -249,7 +243,7 @@ export function HomeConfigTab() {
                 className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shrink-0"
                 title="View Messages Inbox"
               >
-                <ExternalLink className="w-4 h-4" />
+                <LuExternalLink className="w-4 h-4" />
               </Link>
             )}
           </div>

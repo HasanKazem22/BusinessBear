@@ -30,6 +30,10 @@ public class Product {
     @Column(name = "original_price", precision = 12, scale = 2)
     private BigDecimal originalPrice;
 
+    @Column(name = "buying_price", precision = 12, scale = 2, columnDefinition = "NUMERIC(12,2) DEFAULT 0")
+    @Builder.Default
+    private BigDecimal buyingPrice = BigDecimal.ZERO;
+
     @Column(name = "image_url", length = 512)
     private String imageUrl;
 
@@ -53,6 +57,10 @@ public class Product {
     @Column(name = "is_available", nullable = false)
     @Builder.Default
     private Boolean isAvailable = true;
+
+    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    @Builder.Default
+    private Boolean isActive = true;
 
     @Column(columnDefinition = "TEXT")
     private String description;

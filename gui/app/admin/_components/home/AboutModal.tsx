@@ -1,24 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Globe } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { LuPlus, LuTrash2, LuGlobe } from "react-icons/lu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { GlobalModal } from "@/components/ui/global-modal";
-import { ImageUploader } from "@/components/ui/image-uploader";
+import { Modal } from "@/components/ui/modal";
+import { ImageInput } from "@/components/ui/image-input";
 import { AboutUsData, SocialLinkItem } from "@/types/home";
 import { homeService } from "@/services/homeService";
 import {
-  AVAILABLE_SOCIAL_ICONS,
   parseSocialLinks,
   stringifySocialLinks,
 } from "@/lib/constants/homeDefaults";
+import { socialIcons, socialIconMap } from "@/lib/constants/icons";
 
 function DynamicSocialIcon({ name, className }: { name: string; className?: string }) {
-  const IconComponent = (LucideIcons as Record<string, any>)[name] || Globe;
+  const IconComponent = socialIconMap[name] || LuGlobe;
   return <IconComponent className={className} />;
 }
 
@@ -63,7 +62,7 @@ export function AboutModal({
     const updated = socialLinks.map((item) => {
       if (item.id === id) {
         if (field === "iconName") {
-          const opt = AVAILABLE_SOCIAL_ICONS.find((o) => o.name === value);
+          const opt = socialIcons.find((o) => o.name === value);
           return {
             ...item,
             iconName: value,
@@ -82,7 +81,7 @@ export function AboutModal({
   };
 
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="About Us & Social Profiles"
@@ -93,7 +92,7 @@ export function AboutModal({
       size="md"
     >
       <div className="space-y-5">
-        <ImageUploader
+        <ImageInput
           variant="card"
           size="md"
           label="Profile Avatar"
@@ -144,9 +143,6 @@ export function AboutModal({
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-xs font-bold">Social Links & Contact Profiles</Label>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Select an icon and add profile URL / contact link (Email, Phone, Twitter, LinkedIn, etc.)
-              </p>
             </div>
             <Button
               type="button"
@@ -156,7 +152,7 @@ export function AboutModal({
               disabled={isSaving}
               className="h-7 text-xs font-semibold gap-1 shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Link
+              <LuPlus className="w-3.5 h-3.5" /> Add Link
             </Button>
           </div>
 
@@ -167,7 +163,7 @@ export function AboutModal({
           ) : (
             <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
               {socialLinks.map((item) => {
-                const currentOpt = AVAILABLE_SOCIAL_ICONS.find((o) => o.name === item.iconName);
+                const currentOpt = socialIcons.find((o) => o.name === item.iconName);
                 return (
                   <div
                     key={item.id}
@@ -185,7 +181,7 @@ export function AboutModal({
                       disabled={isSaving}
                       className="h-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 text-xs font-medium text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 shrink-0 cursor-pointer"
                     >
-                      {AVAILABLE_SOCIAL_ICONS.map((opt) => (
+                      {socialIcons.map((opt) => (
                         <option key={opt.name} value={opt.name}>
                           {opt.label}
                         </option>
@@ -210,7 +206,7 @@ export function AboutModal({
                       disabled={isSaving}
                       className="h-7 w-7 text-zinc-400 hover:text-red-500 dark:hover:text-red-400 shrink-0"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <LuTrash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 );
@@ -219,6 +215,6 @@ export function AboutModal({
           )}
         </div>
       </div>
-    </GlobalModal>
+    </Modal>
   );
 }

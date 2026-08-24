@@ -7,7 +7,7 @@ import com.businessbear.server.entity.ProductSale;
 import java.util.List;
 
 public interface ProductService {
-    List<ProductDto> searchProducts(String query, String category);
+    List<ProductDto> searchProducts(String query, String category, Boolean activeOnly);
     ProductDto getProductById(Long id);
     ProductDto createProduct(ProductDto productDto);
     ProductDto updateProduct(Long id, ProductDto productDto);

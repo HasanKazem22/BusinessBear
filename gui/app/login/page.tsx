@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { LuEye, LuEyeOff, LuLoader, LuCircleAlert } from "react-icons/lu";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -26,8 +26,8 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
       
-      if (data.token) {
-        login(data.token);
+      if (data.accessToken || data.token) {
+        login(data);
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid username or password");
@@ -97,7 +97,7 @@ export default function LoginPage() {
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPassword ? <LuEyeOff className="w-4 h-4" /> : <LuEye className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function LoginPage() {
         {/* Backend Error */}
         {errorMsg && (
           <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2 rounded-lg mt-1 border border-red-100 dark:border-red-900/30">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <LuCircleAlert className="w-4 h-4 shrink-0" />
             <span className="text-xs font-medium">{errorMsg}</span>
           </div>
         )}
@@ -121,7 +121,7 @@ export default function LoginPage() {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LuLoader className="w-4 h-4 animate-spin" />
               <span>Signing in…</span>
             </>
           ) : (

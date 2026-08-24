@@ -32,5 +32,7 @@ public class ProductDto {
 
     private Integer salesCount;
     private Boolean isAvailable;
+    private Boolean isActive;
+    private BigDecimal buyingPrice;
     private String description;
 }

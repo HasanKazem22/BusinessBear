@@ -4,14 +4,13 @@ import com.businessbear.server.entity.*;
 import com.businessbear.server.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -20,7 +19,9 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     private final HeroSectionRepository heroSectionRepository;
     private final ServiceRepository serviceRepository;
@@ -31,14 +32,29 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        ensureRolePermissionColumnsExist();
         seedPermissions();
         seedRoles();
+        seedRolePermissionTrees();
         seedAdminUser();
         seedHeroSection();
         seedServices();
         seedAboutUs();
         seedProducts();
         seedRealAssets();
+    }
+
+    private void ensureRolePermissionColumnsExist() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE IF EXISTS role_permissions DROP COLUMN IF EXISTS role_name;");
+            jdbcTemplate.execute("ALTER TABLE IF EXISTS role_permissions DROP COLUMN IF EXISTS permission_tree;");
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS app_role_permissions (id BIGSERIAL PRIMARY KEY, role_name VARCHAR(255) UNIQUE, permission_tree JSONB);");
+            jdbcTemplate.execute("ALTER TABLE app_role_permissions ADD COLUMN IF NOT EXISTS role_name VARCHAR(255);");
+            jdbcTemplate.execute("ALTER TABLE app_role_permissions ADD COLUMN IF NOT EXISTS permission_tree JSONB;");
+            System.out.println("====== PostgreSQL DDL migration verified for app_role_permissions table ======");
+        } catch (Exception e) {
+            System.err.println("RolePermission DDL check warning: " + e.getMessage());
+        }
     }
 
     private void seedPermissions() {
@@ -48,7 +64,9 @@ public class DataSeeder implements CommandLineRunner {
                 "CREATE_ROLE",
                 "EDIT_ROLE",
                 "VIEW_DASHBOARD",
-                "MANAGE_PRODUCTS"
+                "MANAGE_PRODUCTS",
+                "MANAGE_REAL_ASSETS",
+                "VIEW_MESSAGES"
         );
 
         for (String name : permissionNames) {
@@ -71,6 +89,15 @@ public class DataSeeder implements CommandLineRunner {
             roleRepository.save(customerRole);
         }
 
+        if (roleRepository.findByName("MANAGER").isEmpty()) {
+            Role managerRole = Role.builder()
+                    .name("MANAGER")
+                    .description("Manager operational access")
+                    .build();
+            permissionRepository.findByName("VIEW_DASHBOARD").ifPresent(p -> managerRole.getPermissions().add(p));
+            roleRepository.save(managerRole);
+        }
+
         if (roleRepository.findByName("ROLE_ADMIN").isEmpty()) {
             Role adminRole = Role.builder()
                     .name("ROLE_ADMIN")
@@ -82,9 +109,238 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    private void seedRolePermissionTrees() {
+        saveOrUpdateRolePermission("ROLE_ADMIN", buildAdminPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for ROLE_ADMIN ======");
+
+        saveOrUpdateRolePermission("MANAGER", buildManagerPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for MANAGER ======");
+
+        saveOrUpdateRolePermission("ROLE_CUSTOMER", buildCustomerPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for ROLE_CUSTOMER ======");
+    }
+
+    private Map<String, Object> buildAdminPermissionTree() {
+        Map<String, Object> adminTree = new HashMap<>();
+
+        // Home Module
+        Map<String, Object> home = new HashMap<>();
+        home.put("isHomePage", true);
+        Map<String, Object> homeSections = new HashMap<>();
+
+        Map<String, Object> hero = new HashMap<>();
+        hero.put("isHeroSection", true);
+        hero.put("isCreate", true);
+        hero.put("isUpdate", true);
+        hero.put("isDelete", true);
+
+        Map<String, Object> services = new HashMap<>();
+        services.put("isServiceSection", true);
+        services.put("isCreate", true);
+        services.put("isUpdate", true);
+        services.put("isDelete", true);
+
+        Map<String, Object> aboutUs = new HashMap<>();
+        aboutUs.put("isAboutUsSection", true);
+        aboutUs.put("isUpdate", true);
+
+        Map<String, Object> adminCards = new HashMap<>();
+        adminCards.put("isCardsSection", true);
+        adminCards.put("isUpdateCardInfo", true);
+        adminCards.put("isCreateCard", true);
+
+        homeSections.put("hero", hero);
+        homeSections.put("services", services);
+        homeSections.put("aboutUs", aboutUs);
+        homeSections.put("adminSetupCards", adminCards);
+        home.put("sections", homeSections);
+
+        // Product Module
+        Map<String, Object> productModule = new HashMap<>();
+        productModule.put("isProductPage", true);
+        Map<String, Object> productActions = new HashMap<>();
+        productActions.put("isCreateProduct", true);
+        productActions.put("isUpdateProduct", true);
+        productActions.put("isDeleteProduct", true);
+        productActions.put("isManageStock", true);
+        productActions.put("isRecordSale", true);
+        productModule.put("actions", productActions);
+
+        // Real Asset Module
+        Map<String, Object> realAssetModule = new HashMap<>();
+        realAssetModule.put("isRealAssetPage", true);
+        Map<String, Object> assetActions = new HashMap<>();
+        assetActions.put("isCreateAsset", true);
+        assetActions.put("isUpdateAsset", true);
+        assetActions.put("isDeleteAsset", true);
+        assetActions.put("isManageBookings", true);
+        assetActions.put("isToggleFeatured", true);
+        realAssetModule.put("actions", assetActions);
+
+        // Contact Messages Module
+        Map<String, Object> messageModule = new HashMap<>();
+        messageModule.put("isMessagePage", true);
+        Map<String, Object> messageActions = new HashMap<>();
+        messageActions.put("isViewMessages", true);
+        messageActions.put("isReplyMessage", true);
+        messageActions.put("isDeleteMessage", true);
+        messageModule.put("actions", messageActions);
+
+        // User & Role Setup Module
+        Map<String, Object> userRoleSetup = new HashMap<>();
+        userRoleSetup.put("isUserRolePage", true);
+        Map<String, Object> userRoleActions = new HashMap<>();
+        userRoleActions.put("canCreateRole", true);
+        userRoleActions.put("canCreateUser", true);
+        userRoleActions.put("canGiveAdminPermission", true);
+        userRoleSetup.put("actions", userRoleActions);
+
+        adminTree.put("home", home);
+        adminTree.put("product", productModule);
+        adminTree.put("realAsset", realAssetModule);
+        adminTree.put("contactMessage", messageModule);
+        adminTree.put("userRoleSetup", userRoleSetup);
+
+        return adminTree;
+    }
+
+    private Map<String, Object> buildManagerPermissionTree() {
+        Map<String, Object> managerTree = new HashMap<>();
+
+        // Home Module
+        Map<String, Object> home = new HashMap<>();
+        home.put("isHomePage", true);
+        Map<String, Object> homeSections = new HashMap<>();
+
+        Map<String, Object> hero = new HashMap<>();
+        hero.put("isHeroSection", true);
+        hero.put("isCreate", true);
+        hero.put("isUpdate", true);
+        hero.put("isDelete", false);
+
+        Map<String, Object> services = new HashMap<>();
+        services.put("isServiceSection", true);
+        services.put("isCreate", true);
+        services.put("isUpdate", true);
+        services.put("isDelete", false);
+
+        Map<String, Object> aboutUs = new HashMap<>();
+        aboutUs.put("isAboutUsSection", true);
+        aboutUs.put("isUpdate", true);
+
+        Map<String, Object> adminCards = new HashMap<>();
+        adminCards.put("isCardsSection", true);
+        adminCards.put("isUpdateCardInfo", true);
+        adminCards.put("isCreateCard", false);
+
+        homeSections.put("hero", hero);
+        homeSections.put("services", services);
+        homeSections.put("aboutUs", aboutUs);
+        homeSections.put("adminSetupCards", adminCards);
+        home.put("sections", homeSections);
+
+        // Product Module
+        Map<String, Object> productModule = new HashMap<>();
+        productModule.put("isProductPage", true);
+        Map<String, Object> productActions = new HashMap<>();
+        productActions.put("isCreateProduct", true);
+        productActions.put("isUpdateProduct", true);
+        productActions.put("isDeleteProduct", false);
+        productActions.put("isManageStock", true);
+        productActions.put("isRecordSale", true);
+        productModule.put("actions", productActions);
+
+        // Real Asset Module
+        Map<String, Object> realAssetModule = new HashMap<>();
+        realAssetModule.put("isRealAssetPage", true);
+        Map<String, Object> assetActions = new HashMap<>();
+        assetActions.put("isCreateAsset", true);
+        assetActions.put("isUpdateAsset", true);
+        assetActions.put("isDeleteAsset", false);
+        assetActions.put("isManageBookings", true);
+        assetActions.put("isToggleFeatured", true);
+        realAssetModule.put("actions", assetActions);
+
+        // Contact Messages Module
+        Map<String, Object> messageModule = new HashMap<>();
+        messageModule.put("isMessagePage", true);
+        Map<String, Object> messageActions = new HashMap<>();
+        messageActions.put("isViewMessages", true);
+        messageActions.put("isReplyMessage", true);
+        messageActions.put("isDeleteMessage", false);
+        messageModule.put("actions", messageActions);
+
+        // User & Role Setup Module
+        Map<String, Object> userRoleSetup = new HashMap<>();
+        userRoleSetup.put("isUserRolePage", true);
+        Map<String, Object> userRoleActions = new HashMap<>();
+        userRoleActions.put("canCreateRole", false);
+        userRoleActions.put("canCreateUser", true);
+        userRoleActions.put("canGiveAdminPermission", false);
+        userRoleSetup.put("actions", userRoleActions);
+
+        managerTree.put("home", home);
+        managerTree.put("product", productModule);
+        managerTree.put("realAsset", realAssetModule);
+        managerTree.put("contactMessage", messageModule);
+        managerTree.put("userRoleSetup", userRoleSetup);
+
+        return managerTree;
+    }
+
+    private Map<String, Object> buildCustomerPermissionTree() {
+        Map<String, Object> customerTree = new HashMap<>();
+
+        Map<String, Object> home = new HashMap<>();
+        home.put("isHomePage", true);
+        Map<String, Object> homeSections = new HashMap<>();
+        Map<String, Object> hero = new HashMap<>();
+        hero.put("isHeroSection", true);
+        hero.put("isCreate", false);
+        hero.put("isUpdate", false);
+        hero.put("isDelete", false);
+
+        homeSections.put("hero", hero);
+        home.put("sections", homeSections);
+
+        Map<String, Object> productModule = new HashMap<>();
+        productModule.put("isProductPage", true);
+        Map<String, Object> productActions = new HashMap<>();
+        productActions.put("isCreateProduct", false);
+        productActions.put("isUpdateProduct", false);
+        productActions.put("isDeleteProduct", false);
+        productActions.put("isManageStock", false);
+        productActions.put("isRecordSale", false);
+        productModule.put("actions", productActions);
+
+        Map<String, Object> realAssetModule = new HashMap<>();
+        realAssetModule.put("isRealAssetPage", true);
+        Map<String, Object> assetActions = new HashMap<>();
+        assetActions.put("isCreateAsset", false);
+        assetActions.put("isUpdateAsset", false);
+        assetActions.put("isDeleteAsset", false);
+        assetActions.put("isManageBookings", false);
+        assetActions.put("isToggleFeatured", false);
+        realAssetModule.put("actions", assetActions);
+
+        customerTree.put("home", home);
+        customerTree.put("product", productModule);
+        customerTree.put("realAsset", realAssetModule);
+
+        return customerTree;
+    }
+
+    private void saveOrUpdateRolePermission(String roleName, Map<String, Object> permissionTree) {
+        RolePermission rolePermission = rolePermissionRepository.findByRoleName(roleName)
+                .orElse(RolePermission.builder().roleName(roleName).build());
+        rolePermission.setPermissionTree(permissionTree);
+        rolePermissionRepository.save(rolePermission);
+    }
+
     private void seedAdminUser() {
         if (userRepository.count() == 0) {
             Role adminRole = roleRepository.findByName("ROLE_ADMIN").orElseThrow();
+            Role managerRole = roleRepository.findByName("MANAGER").orElseThrow();
             
             User admin = User.builder()
                     .fullName("System Administrator")
@@ -92,7 +348,7 @@ public class DataSeeder implements CommandLineRunner {
                     .email("admin@businessbear.com")
                     .mobile("0000000000")
                     .password(passwordEncoder.encode("admin123"))
-                    .roles(Set.of(adminRole))
+                    .roles(Set.of(adminRole, managerRole))
                     .build();
             
             userRepository.save(admin);

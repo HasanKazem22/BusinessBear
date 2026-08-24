@@ -2,27 +2,29 @@
 
 import { useState, useEffect } from "react";
 import {
-  Mail,
-  Search,
-  Filter,
-  RefreshCw,
-  Clock,
-  User,
-  CheckCircle2,
-  AlertCircle,
-  Archive,
-  Eye,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  MessageSquare
-} from "lucide-react";
+  LuMail,
+  LuSearch,
+  LuFilter,
+  LuRefreshCw,
+  LuClock,
+  LuUser,
+  LuCircleAlert,
+  LuArchive,
+  LuEye,
+  LuLoader,
+  LuChevronLeft,
+  LuChevronRight,
+  LuMessageSquare
+} from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GlobalModal } from "@/components/ui/global-modal";
+import { Modal } from "@/components/ui/modal";
 import { toast } from "react-hot-toast";
 import { contactService, ContactMessageResponse, InquiryStatus } from "@/services/contactService";
 import { cn } from "@/lib/utils";
+import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
+import { Loader } from "@/components/ui/loader";
+import { NoData } from "@/components/ui/no-data";
 
 const STATUS_CONFIG: Record<InquiryStatus, { label: string; color: string }> = {
   NEW: { label: "New", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
@@ -35,6 +37,7 @@ const STATUS_CONFIG: Record<InquiryStatus, { label: string; color: string }> = {
 export default function MessagesAdminPage() {
   const [messages, setMessages] = useState<ContactMessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
@@ -45,6 +48,7 @@ export default function MessagesAdminPage() {
 
   const fetchMessages = async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       const res = await contactService.getAllMessages(activeStatus, page, 10);
       if (res.success && res.data) {
@@ -53,6 +57,8 @@ export default function MessagesAdminPage() {
         setTotalElements(res.data.totalElements || 0);
       }
     } catch (err: any) {
+      const msg = err?.message || "Failed to load contact messages. Check your backend connection.";
+      setFetchError(msg);
       toast.error("Failed to load contact messages");
     } finally {
       setIsLoading(false);
@@ -105,26 +111,14 @@ export default function MessagesAdminPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-            <Mail className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
-            Contact Messages & Inquiries
-          </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Manage and respond to messages submitted from your public website contact form.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchMessages}
-          disabled={isLoading}
-          className="self-start sm:self-auto gap-1.5 text-xs font-semibold"
-        >
-          <RefreshCw className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
+      <div className="flex flex-col items-center text-center max-w-xl mx-auto space-y-1.5 pt-2 pb-2">
+        <h1 className="text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center justify-center gap-2">
+          <LuMail className="w-5 h-5 text-zinc-900 dark:text-white" />
+          Contact Messages & Inquiries
+        </h1>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
+          Manage and respond to messages submitted from your public website contact form.
+        </p>
       </div>
 
       {/* Filter Tabs & Search Bar */}
@@ -153,32 +147,54 @@ export default function MessagesAdminPage() {
           })}
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full md:w-64 shrink-0">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <Input
-            placeholder="Search sender or message..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-8 text-xs bg-white dark:bg-zinc-900"
-          />
+        {/* Search & Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Search Input */}
+          <div className="relative w-full md:w-60 shrink-0">
+            <LuSearch className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Search sender or message..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 h-8 text-xs bg-white dark:bg-zinc-900"
+            />
+          </div>
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchMessages}
+            disabled={isLoading}
+            className="h-8 gap-1.5 text-xs font-semibold px-3"
+          >
+            <LuRefreshCw className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
         </div>
       </div>
 
       {/* Messages List / Table */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-          <Loader2 className="w-8 h-8 text-zinc-400 animate-spin mb-2" />
-          <p className="text-xs text-zinc-500 font-medium">Loading messages...</p>
+      {fetchError ? (
+        <ServerErrorCard
+          error={fetchError}
+          onRetry={fetchMessages}
+          variant="inline"
+          title="Failed to Load Messages"
+        />
+      ) : isLoading ? (
+        <div className="py-12 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+          <Loader text="Loading messages..." variant="inline" />
         </div>
       ) : filteredMessages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-          <MessageSquare className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mb-2" />
-          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">No messages found</p>
-          <p className="text-xs text-zinc-400 mt-1">
-            {searchTerm ? "Try broadening your search term." : "No inquiry messages have been received yet."}
-          </p>
-        </div>
+        <NoData
+          icon={LuMessageSquare}
+          title="No messages found"
+          description={
+            searchTerm
+              ? `No inquiry messages match "${searchTerm}".`
+              : "No inquiry messages have been received yet."
+          }
+        />
       ) : (
         <div className="space-y-3">
           <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
@@ -228,7 +244,7 @@ export default function MessagesAdminPage() {
 
                     <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
                       <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <LuClock className="w-3 h-3" />
                         {formattedDate}
                       </span>
                       <Button
@@ -240,7 +256,7 @@ export default function MessagesAdminPage() {
                         }}
                         className="h-7 text-xs px-2.5 font-medium gap-1"
                       >
-                        <Eye className="w-3.5 h-3.5" /> View
+                        <LuEye className="w-3.5 h-3.5" /> View
                       </Button>
                     </div>
                   </div>
@@ -263,7 +279,7 @@ export default function MessagesAdminPage() {
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   className="h-7 text-xs gap-1"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" /> Previous
+                  <LuChevronLeft className="w-3.5 h-3.5" /> Previous
                 </Button>
                 <Button
                   variant="outline"
@@ -272,7 +288,7 @@ export default function MessagesAdminPage() {
                   onClick={() => setPage((p) => p + 1)}
                   className="h-7 text-xs gap-1"
                 >
-                  Next <ChevronRight className="w-3.5 h-3.5" />
+                  Next <LuChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
@@ -282,7 +298,7 @@ export default function MessagesAdminPage() {
 
       {/* Detail Modal */}
       {selectedMessage && (
-        <GlobalModal
+        <Modal
           isOpen={!!selectedMessage}
           onOpenChange={(open) => !open && setSelectedMessage(null)}
           title="Inquiry Details"
@@ -296,7 +312,7 @@ export default function MessagesAdminPage() {
             <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4 text-zinc-400" />
+                  <LuUser className="w-4 h-4 text-zinc-400" />
                   <span className="text-xs font-bold text-zinc-900 dark:text-white">
                     {selectedMessage.name}
                   </span>
@@ -356,7 +372,7 @@ export default function MessagesAdminPage() {
                     className="h-7 text-xs font-semibold"
                   >
                     {isUpdatingStatus === selectedMessage.id && selectedMessage.status === st ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                      <LuLoader className="w-3 h-3 animate-spin mr-1" />
                     ) : null}
                     {STATUS_CONFIG[st].label}
                   </Button>
@@ -364,7 +380,7 @@ export default function MessagesAdminPage() {
               </div>
             </div>
           </div>
-        </GlobalModal>
+        </Modal>
       )}
     </div>
   );

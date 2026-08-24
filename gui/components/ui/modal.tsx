@@ -8,19 +8,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { LuLoader } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 
-export type GlobalModalSize = "sm" | "md" | "lg" | "xl";
+export type ModalSize = "sm" | "md" | "lg" | "xl";
 
-const sizeClasses: Record<GlobalModalSize, string> = {
+const sizeClasses: Record<ModalSize, string> = {
   sm: "sm:max-w-sm",
   md: "sm:max-w-lg",
   lg: "sm:max-w-2xl",
   xl: "sm:max-w-4xl",
 };
 
-interface GlobalModalProps {
+interface ModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -37,10 +37,10 @@ interface GlobalModalProps {
    * lg  → 672px  — tables, lists, multi-column content
    * xl  → 896px  — complex layouts, side-by-side panels
    */
-  size?: GlobalModalSize;
+  size?: ModalSize;
 }
 
-export function GlobalModal({
+export function Modal({
   isOpen,
   onOpenChange,
   title,
@@ -51,7 +51,7 @@ export function GlobalModal({
   isLoading = false,
   disabled = false,
   size = "md",
-}: GlobalModalProps) {
+}: ModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={isLoading ? () => {} : onOpenChange}>
       <DialogContent
@@ -87,7 +87,7 @@ export function GlobalModal({
             className="px-4 py-1 rounded-md font-semibold text-xs transition-all flex items-center gap-1.5"
             disabled={isLoading || disabled}
           >
-            {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {isLoading && <LuLoader className="w-3.5 h-3.5 animate-spin" />}
             {saveText}
           </Button>
         </div>

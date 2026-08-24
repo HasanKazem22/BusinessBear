@@ -23,8 +23,10 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:900000}") // Default 15 mins (900,000 ms)
     private long jwtExpiration;
+
+    private final long refreshExpiration = 604800000L; // 7 days (604,800,000 ms)
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -40,13 +42,22 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        // Embed authorities (permissions/roles) into the token for frontend
         List<String> authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         extraClaims.put("authorities", authorities);
         
         return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tokenType", "refresh");
+        return buildToken(claims, userDetails, refreshExpiration);
+    }
+
+    public long getExpirationTimeSeconds() {
+        return jwtExpiration / 1000;
     }
 
     private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
@@ -64,7 +75,7 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 

@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GlobalModal } from "@/components/ui/global-modal";
-import { ImageUploader } from "@/components/ui/image-uploader";
+import { Modal } from "@/components/ui/modal";
+import { ImageInput } from "@/components/ui/image-input";
 import { HeroData } from "@/types/home";
 import { homeService } from "@/services/homeService";
 
@@ -24,7 +24,7 @@ export function HeroModal({
   onSave,
 }: HeroModalProps) {
   return (
-    <GlobalModal
+    <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Hero Section"
@@ -35,7 +35,7 @@ export function HeroModal({
       size="md"
     >
       <div className="space-y-5">
-        <ImageUploader
+        <ImageInput
           variant="card"
           size="md"
           label="Logo Image"
@@ -71,6 +71,6 @@ export function HeroModal({
           />
         </div>
       </div>
-    </GlobalModal>
+    </Modal>
   );
 }

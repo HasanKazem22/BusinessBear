@@ -24,8 +24,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProductDto> searchProducts(String query, String category) {
-        return productRepository.searchProducts(query, category)
+    public List<ProductDto> searchProducts(String query, String category, Boolean activeOnly) {
+        boolean filterActive = activeOnly != null && activeOnly;
+        return productRepository.searchProducts(query, category, filterActive)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -47,6 +48,7 @@ public class ProductServiceImpl implements ProductService {
                 .name(dto.getName())
                 .price(dto.getPrice())
                 .originalPrice(dto.getOriginalPrice())
+                .buyingPrice(dto.getBuyingPrice() != null ? dto.getBuyingPrice() : BigDecimal.ZERO)
                 .imageUrl(dto.getImageUrl())
                 .brandLogo(dto.getBrandLogo())
                 .rating(dto.getRating() != null ? dto.getRating() : 5.0)
@@ -54,6 +56,7 @@ public class ProductServiceImpl implements ProductService {
                 .stockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0)
                 .salesCount(0)
                 .isAvailable(dto.getStockQuantity() != null && dto.getStockQuantity() > 0)
+                .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                 .description(dto.getDescription())
                 .build();
         Product saved = productRepository.save(product);
@@ -70,6 +73,7 @@ public class ProductServiceImpl implements ProductService {
         product.setName(dto.getName());
         product.setPrice(dto.getPrice());
         product.setOriginalPrice(dto.getOriginalPrice());
+        if (dto.getBuyingPrice() != null) product.setBuyingPrice(dto.getBuyingPrice());
         if (dto.getImageUrl() != null) product.setImageUrl(dto.getImageUrl());
         if (dto.getBrandLogo() != null) product.setBrandLogo(dto.getBrandLogo());
         if (dto.getRating() != null) product.setRating(dto.getRating());
@@ -78,6 +82,7 @@ public class ProductServiceImpl implements ProductService {
             product.setStockQuantity(dto.getStockQuantity());
             product.setIsAvailable(dto.getStockQuantity() > 0);
         }
+        if (dto.getIsActive() != null) product.setIsActive(dto.getIsActive());
         if (dto.getDescription() != null) product.setDescription(dto.getDescription());
 
         Product updated = productRepository.save(product);
@@ -141,6 +146,7 @@ public class ProductServiceImpl implements ProductService {
                 .name(entity.getName())
                 .price(entity.getPrice())
                 .originalPrice(entity.getOriginalPrice())
+                .buyingPrice(entity.getBuyingPrice())
                 .imageUrl(entity.getImageUrl())
                 .brandLogo(entity.getBrandLogo())
                 .rating(entity.getRating())
@@ -148,6 +154,7 @@ public class ProductServiceImpl implements ProductService {
                 .stockQuantity(entity.getStockQuantity())
                 .salesCount(entity.getSalesCount())
                 .isAvailable(entity.getIsAvailable())
+                .isActive(entity.getIsActive())
                 .description(entity.getDescription())
                 .build();
     }

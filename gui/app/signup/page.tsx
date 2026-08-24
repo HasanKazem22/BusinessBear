@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Loader2, Check, AlertCircle } from "lucide-react";
+import { LuEye, LuEyeOff, LuLoader, LuCheck, LuCircleAlert } from "react-icons/lu";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -57,8 +57,8 @@ export default function SignupPage() {
       });
       
       // Auto-login with the token returned from the backend
-      if (data.token) {
-        login(data.token);
+      if (data.accessToken || data.token) {
+        login(data);
       }
       setIsSuccess(true);
     } catch (err: any) {
@@ -85,7 +85,7 @@ export default function SignupPage() {
       >
         <div className="flex flex-col items-center gap-4 py-2 text-center">
           <div className="w-14 h-14 rounded-full bg-zinc-950/10 dark:bg-white/10 border border-zinc-950/20 dark:border-white/20 flex items-center justify-center shadow-lg">
-            <Check className="w-6 h-6 text-zinc-900 dark:text-white" />
+            <LuCheck className="w-6 h-6 text-zinc-900 dark:text-white" />
           </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-xs">
             Your account has been created. You can now log in to your dashboard.
@@ -173,7 +173,7 @@ export default function SignupPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {showPassword ? <LuEyeOff className="w-3.5 h-3.5" /> : <LuEye className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
@@ -202,7 +202,7 @@ export default function SignupPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                 tabIndex={-1}
               >
-                {showConfirm ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {showConfirm ? <LuEyeOff className="w-3.5 h-3.5" /> : <LuEye className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
@@ -211,7 +211,7 @@ export default function SignupPage() {
         {/* Mismatch hint */}
         {passwordsMismatch && (
           <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400 -mt-0.5">
-            <AlertCircle className="w-3 h-3 shrink-0" />
+            <LuCircleAlert className="w-3 h-3 shrink-0" />
             <span className="text-[10px] font-medium">Passwords do not match</span>
           </div>
         )}
@@ -219,7 +219,7 @@ export default function SignupPage() {
         {/* Backend Error */}
         {errorMsg && (
           <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2 rounded-lg mt-1 border border-red-100 dark:border-red-900/30">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <LuCircleAlert className="w-4 h-4 shrink-0" />
             <span className="text-xs font-medium">{errorMsg}</span>
           </div>
         )}
@@ -234,7 +234,7 @@ export default function SignupPage() {
           className="w-full flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 disabled:opacity-60 text-white dark:text-black font-bold py-2.5 rounded-xl transition-all duration-200 shadow-lg shadow-zinc-950/10 dark:shadow-white/10 active:scale-[0.99] text-sm tracking-wide cursor-pointer"
         >
           {isSubmitting ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /><span>Creating account…</span></>
+            <><LuLoader className="w-4 h-4 animate-spin" /><span>Creating account…</span></>
           ) : (
             <span>Create Account</span>
           )}
