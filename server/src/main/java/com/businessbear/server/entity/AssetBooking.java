@@ -2,6 +2,7 @@ package com.businessbear.server.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -11,12 +12,8 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class AssetBooking {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class AssetBooking extends BaseEntity {
 
     @Column(name = "booking_number", unique = true, nullable = false, length = 100)
     private String bookingNumber;
@@ -49,12 +46,9 @@ public class AssetBooking {
     @Column(name = "booking_date")
     private LocalDateTime bookingDate;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
+    @Override
+    protected void onCreate() {
+        super.onCreate();
         if (this.bookingDate == null) {
             this.bookingDate = LocalDateTime.now();
         }

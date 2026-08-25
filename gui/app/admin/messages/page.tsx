@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
 import { Loader } from "@/components/ui/loader";
 import { NoData } from "@/components/ui/no-data";
+import { PermissionGuard } from "@/components/PermissionGuard";
+import { AccessDeniedCard } from "@/components/ui/AccessDeniedCard";
 
 const STATUS_CONFIG: Record<InquiryStatus, { label: string; color: string }> = {
   NEW: { label: "New", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
@@ -35,6 +37,17 @@ const STATUS_CONFIG: Record<InquiryStatus, { label: string; color: string }> = {
 };
 
 export default function MessagesAdminPage() {
+  return (
+    <PermissionGuard
+      require="contactMessage.isMessagePage"
+      fallback={<AccessDeniedCard title="Messages Access Denied" description="You do not have permission to view or manage contact messages." />}
+    >
+      <MessagesContent />
+    </PermissionGuard>
+  );
+}
+
+function MessagesContent() {
   const [messages, setMessages] = useState<ContactMessageResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);

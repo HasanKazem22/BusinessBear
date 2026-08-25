@@ -47,22 +47,27 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}): Pr
     
     // Auto-refresh token on 401 Unauthorized
     if (response.status === 401 && requireAuth && !_retry && !endpoint.includes('/auth/')) {
-      const currentToken = getCookie('auth_token') || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
-      if (currentToken) {
+      const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+      if (storedRefreshToken) {
         try {
           const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: currentToken }),
+            body: JSON.stringify({ refreshToken: storedRefreshToken }),
           });
 
           if (refreshRes.ok) {
             const authData = await refreshRes.json();
             const newToken = authData.accessToken || authData.token;
+            const newRefreshToken = authData.refreshToken;
+
             setCookie('auth_token', newToken);
 
             if (typeof window !== 'undefined') {
               localStorage.setItem('access_token', newToken);
+              if (newRefreshToken) {
+                localStorage.setItem('refresh_token', newRefreshToken);
+              }
               if (authData.rolePermission) {
                 localStorage.setItem('role_permission', JSON.stringify(authData.rolePermission));
               }

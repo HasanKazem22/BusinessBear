@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { NoData } from "@/components/ui/no-data";
 import { Dropdown } from "@/components/ui/dropdown";
-import { LuSearch, LuPlus, LuInbox, LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import { LuSearch, LuPlus, LuInbox, LuChevronLeft, LuChevronRight, LuX } from "react-icons/lu";
 
 export interface TableLayoutProps {
   searchPlaceholder?: string;
@@ -74,52 +74,41 @@ export function TableLayout({
     return pages;
   };
 
-  // If empty, display the dashed empty state box
-  if (isEmpty) {
-    return (
-      <NoData
-        icon={emptyIcon}
-        title={emptyTitle || "No data found"}
-        description={
-          emptyDescription ||
-          (searchValue ? `No results found matching "${searchValue}".` : "No items have been added yet.")
-        }
-        action={
-          createButtonText && onCreateClick ? (
-            <Button onClick={onCreateClick} variant="outline" size="sm" className="h-8 text-xs font-semibold gap-1.5 rounded-lg">
-              <LuPlus className="w-3.5 h-3.5" /> {createButtonText}
-            </Button>
-          ) : undefined
-        }
-      />
-    );
-  }
-
   return (
     <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md shadow-sm font-sans">
       {/* Top Controls Toolbar Header */}
       <div className="p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/30 rounded-t-xl">
-        <div className="flex items-center gap-3 flex-1 max-w-xl">
+        <div className="flex items-center gap-3 w-full sm:w-72 md:w-80">
           {onSearchChange !== undefined && (
-            <div className="relative flex-1">
+            <div className="relative w-full">
               <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <Input
                 type="text"
                 placeholder={searchPlaceholder}
                 value={searchValue || ""}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 h-9 text-xs font-medium bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800/80 rounded-lg focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all"
+                className="pl-9 pr-8 h-9 text-xs font-medium bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800/80 rounded-lg focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all w-full"
               />
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+                  aria-label="Clear Search"
+                >
+                  <LuX className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {extraActions}
           {createButtonText && onCreateClick && (
             <Button
               onClick={onCreateClick}
-              className="h-9 text-xs font-bold gap-1.5 px-3.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 rounded-lg shadow-xs transition-all"
+              className="h-9 text-xs font-bold gap-1.5 px-3.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 rounded-lg shadow-xs transition-all w-full sm:w-auto justify-center"
             >
               <LuPlus className="w-4 h-4" /> {createButtonText}
             </Button>
@@ -127,13 +116,44 @@ export function TableLayout({
         </div>
       </div>
 
-      {/* Table Grid */}
-      <div className="w-full">{children}</div>
+      {/* Table Grid / Empty State */}
+      <div className="w-full overflow-x-auto">
+        {isEmpty ? (
+          <div className="p-8">
+            <NoData
+              icon={emptyIcon}
+              title={emptyTitle || "No matching records"}
+              description={
+                emptyDescription ||
+                (searchValue ? `No items match your search for "${searchValue}".` : "No items have been added yet.")
+              }
+              action={
+                searchValue ? (
+                  <Button
+                    onClick={() => onSearchChange?.("")}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-semibold rounded-lg gap-1.5"
+                  >
+                    <LuX className="w-3.5 h-3.5" /> Clear Search
+                  </Button>
+                ) : createButtonText && onCreateClick ? (
+                  <Button onClick={onCreateClick} variant="outline" size="sm" className="h-8 text-xs font-semibold gap-1.5 rounded-lg">
+                    <LuPlus className="w-3.5 h-3.5" /> {createButtonText}
+                  </Button>
+                ) : undefined
+              }
+            />
+          </div>
+        ) : (
+          children
+        )}
+      </div>
 
       {/* Pagination Footer */}
-      {totalItems !== undefined && totalItems > 0 && (
+      {!isEmpty && totalItems !== undefined && totalItems > 0 && (
         <div className="p-3 px-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/30 text-xs rounded-b-xl">
-          <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400 font-medium">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-zinc-500 dark:text-zinc-400 font-medium text-center sm:text-left w-full sm:w-auto">
             <span>
               Showing <strong className="font-mono text-zinc-800 dark:text-zinc-200">{fromIndex}–{toIndex}</strong> of <strong className="font-mono text-zinc-800 dark:text-zinc-200">{totalItems}</strong> items
             </span>
@@ -155,7 +175,7 @@ export function TableLayout({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
@@ -166,7 +186,7 @@ export function TableLayout({
               <LuChevronLeft className="w-3.5 h-3.5" /> Previous
             </Button>
 
-            <div className="flex items-center gap-1 px-1">
+            <div className="flex items-center gap-1 px-1 overflow-x-auto">
               {getPageNumbers().map((p, i) =>
                 typeof p === "number" ? (
                   <button

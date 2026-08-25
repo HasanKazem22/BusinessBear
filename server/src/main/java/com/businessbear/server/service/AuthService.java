@@ -4,9 +4,11 @@ import com.businessbear.server.dto.AuthResponse;
 import com.businessbear.server.dto.LoginRequest;
 import com.businessbear.server.dto.RefreshTokenRequest;
 import com.businessbear.server.dto.SignupRequest;
+import com.businessbear.server.entity.Customer;
 import com.businessbear.server.entity.Role;
 import com.businessbear.server.entity.User;
 import com.businessbear.server.exception.UserAlreadyExistsException;
+import com.businessbear.server.repository.CustomerRepository;
 import com.businessbear.server.repository.RoleRepository;
 import com.businessbear.server.repository.UserRepository;
 import com.businessbear.server.security.JwtService;
@@ -19,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +30,7 @@ import java.util.Map;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -36,34 +40,30 @@ public class AuthService {
 
     @Transactional
     public AuthResponse signup(SignupRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.getUsername()) || customerRepository.existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username is already taken");
         }
-        if (userRepository.existsByMobile(request.getMobile())) {
+        if (userRepository.existsByMobile(request.getMobile()) || customerRepository.existsByMobile(request.getMobile())) {
             throw new UserAlreadyExistsException("Mobile number is already registered");
         }
-        if (request.getEmail() != null && !request.getEmail().isEmpty() && userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && !request.getEmail().isEmpty() &&
+                (userRepository.existsByEmail(request.getEmail()) || customerRepository.existsByEmail(request.getEmail()))) {
             throw new UserAlreadyExistsException("Email is already registered");
         }
 
-        Role defaultRole = roleRepository.findByName("ROLE_CUSTOMER")
-                .orElseGet(() -> {
-                    Role role = Role.builder().name("ROLE_CUSTOMER").description("Default customer role").build();
-                    return roleRepository.save(role);
-                });
-
-        User user = User.builder()
+        // Create Customer Entity saved to 'customers' table
+        Customer customer = Customer.builder()
                 .fullName(request.getFullName())
                 .username(request.getUsername())
                 .mobile(request.getMobile())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .isActive(true)
                 .build();
-        
-        user.getRoles().add(defaultRole);
-        userRepository.save(user);
 
-        return buildAuthResponse(user);
+        customerRepository.save(customer);
+
+        return buildAuthResponse(customer);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -74,11 +74,8 @@ public class AuthService {
                 )
         );
 
-        User user = userRepository.findByUsername(request.getIdentifier())
-                .orElseGet(() -> userRepository.findByEmail(request.getIdentifier())
-                        .orElseThrow(() -> new RuntimeException("User not found")));
-
-        return buildAuthResponse(user);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getIdentifier());
+        return buildAuthResponse(userDetails);
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
@@ -90,38 +87,51 @@ public class AuthService {
             throw new RuntimeException("Invalid or expired refresh token");
         }
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return buildAuthResponse(user);
+        return buildAuthResponse(userDetails);
     }
 
-    private AuthResponse buildAuthResponse(User user) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+    private AuthResponse buildAuthResponse(UserDetails userDetails) {
         String accessToken = jwtService.generateToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        List<String> roleNames;
+        Long userId = 0L;
+        String username = userDetails.getUsername();
+        String fullName = username;
+        String email = "";
 
-        List<String> roleNames = user.getRoles().stream()
-                .map(Role::getName)
-                .toList();
+        if (userDetails instanceof User user) {
+            userId = user.getId();
+            fullName = user.getFullName();
+            email = user.getEmail();
+            roleNames = user.getRoles().stream().map(Role::getName).toList();
+        } else if (userDetails instanceof Customer customer) {
+            userId = customer.getId();
+            fullName = customer.getFullName();
+            email = customer.getEmail();
+            roleNames = Collections.singletonList("ROLE_CUSTOMER");
+        } else {
+            roleNames = userDetails.getAuthorities().stream().map(a -> a.getAuthority()).toList();
+        }
 
         Map<String, Object> rolePermissionTree = rolePermissionService.getMergedPermissionsForRoles(roleNames);
 
         AuthResponse.UserSummary userSummary = AuthResponse.UserSummary.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
+                .id(userId)
+                .username(username)
+                .email(email)
                 .roles(roleNames)
                 .build();
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtService.getExpirationTimeSeconds()) // 900 seconds (15 min)
                 .user(userSummary)
                 .rolePermission(rolePermissionTree)
                 .token(accessToken) // Legacy compatibility
-                .username(user.getUsername())
-                .fullName(user.getFullName())
+                .username(username)
+                .fullName(fullName)
                 .message("Authentication successful")
                 .build();
     }

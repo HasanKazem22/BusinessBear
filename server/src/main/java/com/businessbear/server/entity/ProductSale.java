@@ -2,8 +2,8 @@ package com.businessbear.server.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product_sales")
@@ -11,12 +11,8 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ProductSale {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class ProductSale extends BaseEntity {
 
     @Column(name = "transaction_number", unique = true, nullable = false, length = 100)
     private String transactionNumber;
@@ -43,12 +39,4 @@ public class ProductSale {
     @Column(name = "payment_status", length = 50)
     @Builder.Default
     private String paymentStatus = "PAID";
-
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

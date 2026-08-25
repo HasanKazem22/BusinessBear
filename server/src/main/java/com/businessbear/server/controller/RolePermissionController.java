@@ -17,7 +17,7 @@ public class RolePermissionController {
     private final RolePermissionService rolePermissionService;
 
     @GetMapping("/{roleName}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('MANAGE_ROLES')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
     public ResponseEntity<RolePermission> getRolePermission(@PathVariable String roleName) {
         return rolePermissionService.getByRoleName(roleName)
                 .map(ResponseEntity::ok)
@@ -25,7 +25,7 @@ public class RolePermissionController {
     }
 
     @PutMapping("/{roleName}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('MANAGE_ROLES')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
     public ResponseEntity<RolePermission> updateRolePermission(
             @PathVariable String roleName,
             @RequestBody Map<String, Object> permissionTree

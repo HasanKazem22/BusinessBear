@@ -2,23 +2,20 @@ package com.businessbear.server.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 
 @Entity
-@Table(name = "app_role_permissions")
+@Table(name = "role_permissions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class RolePermission {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class RolePermission extends BaseEntity {
 
     @Column(name = "role_name", nullable = false, unique = true)
     private String roleName;

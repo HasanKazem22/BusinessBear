@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { Loader } from "@/components/ui/loader";
 import { Input } from "@/components/ui/input";
@@ -11,27 +10,20 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  LuPencil, LuCircleCheck, LuCircleX, LuUsers
+  LuPencil, LuTrash2, LuCircleCheck, LuCircleX, LuUsers
 } from "react-icons/lu";
-
-interface UserItem {
-  id: number;
-  fullName?: string;
-  username: string;
-  email?: string;
-  mobile?: string;
-  isActive: boolean;
-  roles: { id: number; name: string; description?: string }[];
-}
-
-interface RoleItem {
-  id: number;
-  name: string;
-  description?: string;
-}
+import { useAuth } from "@/context/AuthContext";
+import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
+import { userRoleService } from "@/services/userRoleService";
+import { SystemUserItem, RoleItem } from "@/types/userRole";
 
 export function SystemUsersTab() {
-  const [users, setUsers] = useState<UserItem[]>([]);
+  const { can, hasRole } = useAuth();
+  const canCreate = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isCreate");
+  const canUpdate = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isUpdate");
+  const canDelete = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isDelete");
+
+  const [users, setUsers] = useState<SystemUserItem[]>([]);
   const [rolesList, setRolesList] = useState<RoleItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +34,7 @@ export function SystemUsersTab() {
 
   // Create / Edit User Modal
   const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [editingUser, setEditingUser] = useState<SystemUserItem | null>(null);
   const [userForm, setUserForm] = useState({
     fullName: "",
     username: "",
@@ -53,19 +45,24 @@ export function SystemUsersTab() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Delete User Modal State
+  const [deletingUser, setDeletingUser] = useState<SystemUserItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [error, setError] = useState<any>(null);
+
   const fetchData = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const [uRes, rRes] = await Promise.all([
-        apiFetch("/admin/users"),
-        apiFetch("/admin/roles"),
+      const [systemUsers, rolesData] = await Promise.all([
+        userRoleService.getSystemUsers(),
+        userRoleService.getRoles(),
       ]);
-      const systemUsers = (uRes || []).filter((u: UserItem) =>
-        u.roles?.some((r) => r.name !== "ROLE_CUSTOMER") || u.roles?.length === 0
-      );
       setUsers(systemUsers);
-      setRolesList(rRes || []);
+      setRolesList(rolesData);
     } catch (err: any) {
+      setError(err);
       toast.error(err?.message || "Failed to load system users.");
     } finally {
       setIsLoading(false);
@@ -86,7 +83,7 @@ export function SystemUsersTab() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (user: UserItem) => {
+  const handleOpenEdit = (user: SystemUserItem) => {
     setEditingUser(user);
     setUserForm({
       fullName: user.fullName || "",
@@ -99,13 +96,10 @@ export function SystemUsersTab() {
     setShowModal(true);
   };
 
-  const handleToggleStatus = async (user: UserItem) => {
+  const handleToggleStatus = async (user: SystemUserItem) => {
     try {
       const nextStatus = !user.isActive;
-      await apiFetch(`/admin/users/${user.id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ isActive: nextStatus }),
-      });
+      await userRoleService.toggleUserStatus(user.id, nextStatus);
       toast.success(`User '${user.username}' is now ${nextStatus ? "Active" : "Inactive"}.`);
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, isActive: nextStatus } : u))
@@ -119,16 +113,10 @@ export function SystemUsersTab() {
     setIsSubmitting(true);
     try {
       if (editingUser) {
-        await apiFetch(`/admin/users/${editingUser.id}`, {
-          method: "PUT",
-          body: JSON.stringify(userForm),
-        });
+        await userRoleService.updateSystemUser(editingUser.id, userForm);
         toast.success(`User account '${userForm.username}' updated!`);
       } else {
-        await apiFetch("/admin/users", {
-          method: "POST",
-          body: JSON.stringify(userForm),
-        });
+        await userRoleService.createSystemUser(userForm);
         toast.success(`System user '${userForm.username}' created!`);
       }
       setShowModal(false);
@@ -140,10 +128,26 @@ export function SystemUsersTab() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsDeleting(true);
+    try {
+      await userRoleService.deleteSystemUser(deletingUser.id);
+      toast.success(`System user '@${deletingUser.username}' deleted successfully!`);
+      setDeletingUser(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete system user.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredUsers = users.filter((u) =>
     (u.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (u.email || "").toLowerCase().includes(searchQuery.toLowerCase())
+    (u.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.mobile || "").includes(searchQuery)
   );
 
   const paginatedUsers = filteredUsers.slice(
@@ -151,13 +155,15 @@ export function SystemUsersTab() {
     currentPage * pageSize
   );
 
+  if (error) return <div className="py-8"><ServerErrorCard error={error} onRetry={fetchData} variant="inline" title="Failed to Load System Users" /></div>;
+
   return (
     <TableLayout
       searchPlaceholder="Search system users by name, username, email..."
       searchValue={searchQuery}
       onSearchChange={setSearchQuery}
-      createButtonText="Create System User"
-      onCreateClick={handleOpenCreate}
+      createButtonText={canCreate ? "Create System User" : undefined}
+      onCreateClick={canCreate ? handleOpenCreate : undefined}
       isEmpty={!isLoading && filteredUsers.length === 0}
       emptyTitle="No system users found"
       emptyDescription={searchQuery ? `No system users match "${searchQuery}".` : "No system accounts have been created yet."}
@@ -180,7 +186,7 @@ export function SystemUsersTab() {
               <TableHead className="w-1/6">Mobile</TableHead>
               <TableHead className="w-1/4">Assigned Roles</TableHead>
               <TableHead className="w-28">Status</TableHead>
-              <TableHead className="text-right pr-5 w-20">Actions</TableHead>
+              <TableHead className="text-right pr-5 w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
@@ -210,26 +216,38 @@ export function SystemUsersTab() {
                 </TableCell>
                 <TableCell>
                   <button
-                    onClick={() => handleToggleStatus(user)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                    onClick={() => canUpdate && handleToggleStatus(user)}
+                    disabled={!canUpdate}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all ${
                       user.isActive
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-                    }`}
+                    } ${canUpdate ? "cursor-pointer" : "opacity-75 cursor-not-allowed"}`}
                   >
                     {user.isActive ? <LuCircleCheck className="w-3 h-3" /> : <LuCircleX className="w-3 h-3" />}
                     {user.isActive ? "Active" : "Inactive"}
                   </button>
                 </TableCell>
                 <TableCell className="text-right pr-5">
-                  <div className="flex items-center justify-end">
-                    <button
-                      onClick={() => handleOpenEdit(user)}
-                      className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors"
-                      title="Edit User"
-                    >
-                      <LuPencil className="h-3.5 w-3.5" />
-                    </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {canUpdate && (
+                      <button
+                        onClick={() => handleOpenEdit(user)}
+                        className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors"
+                        title="Edit User"
+                      >
+                        <LuPencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeletingUser(user)}
+                        className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center transition-colors"
+                        title="Delete User"
+                      >
+                        <LuTrash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -333,6 +351,22 @@ export function SystemUsersTab() {
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* DELETE USER MODAL */}
+      <Modal
+        isOpen={!!deletingUser}
+        onOpenChange={(open) => !open && setDeletingUser(null)}
+        title="Confirm Delete System User"
+        onSave={handleDeleteUser}
+        saveText="Delete User"
+        isLoading={isDeleting}
+      >
+        <p className="text-xs text-zinc-600 dark:text-zinc-300">
+          Are you sure you want to permanently delete system user account{" "}
+          <strong className="text-zinc-900 dark:text-white font-mono">@{deletingUser?.username}</strong>?
+          This action cannot be undone.
+        </p>
       </Modal>
     </TableLayout>
   );

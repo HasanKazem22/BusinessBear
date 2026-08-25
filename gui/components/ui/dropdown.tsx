@@ -81,7 +81,7 @@ export function Dropdown({
       {isOpen && (
         <div
           className={cn(
-            "absolute left-0 z-50 max-h-60 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 shadow-xl scrollbar-none min-w-full w-max max-w-sm",
+            "absolute left-0 z-[100] max-h-60 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 shadow-2xl scrollbar-none min-w-full w-max max-w-sm",
             direction === "up"
               ? "bottom-full mb-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150"
               : "top-full mt-1.5 animate-in fade-in slide-in-from-top-2 duration-150"

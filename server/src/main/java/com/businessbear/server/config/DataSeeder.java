@@ -32,6 +32,7 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        ensureBaseEntityColumnsExist();
         ensureRolePermissionColumnsExist();
         seedPermissions();
         seedRoles();
@@ -44,14 +45,44 @@ public class DataSeeder implements CommandLineRunner {
         seedRealAssets();
     }
 
+    private void ensureBaseEntityColumnsExist() {
+        try {
+            String[] tables = {
+                "users", "customers", "products", "real_assets", "services",
+                "hero_sections", "about_us", "contact_messages", "asset_bookings", "product_sales", "roles", "role_permissions"
+            };
+            for (String table : tables) {
+                jdbcTemplate.execute("ALTER TABLE IF EXISTS " + table + " ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;");
+                jdbcTemplate.execute("ALTER TABLE IF EXISTS " + table + " ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;");
+                jdbcTemplate.execute("ALTER TABLE IF EXISTS " + table + " ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;");
+            }
+            System.out.println("====== PostgreSQL DDL migration verified for BaseEntity columns (created_at, updated_at, version) ======");
+        } catch (Exception e) {
+            System.err.println("BaseEntity DDL check warning: " + e.getMessage());
+        }
+    }
+
     private void ensureRolePermissionColumnsExist() {
         try {
-            jdbcTemplate.execute("ALTER TABLE IF EXISTS role_permissions DROP COLUMN IF EXISTS role_name;");
-            jdbcTemplate.execute("ALTER TABLE IF EXISTS role_permissions DROP COLUMN IF EXISTS permission_tree;");
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS app_role_permissions (id BIGSERIAL PRIMARY KEY, role_name VARCHAR(255) UNIQUE, permission_tree JSONB);");
-            jdbcTemplate.execute("ALTER TABLE app_role_permissions ADD COLUMN IF NOT EXISTS role_name VARCHAR(255);");
-            jdbcTemplate.execute("ALTER TABLE app_role_permissions ADD COLUMN IF NOT EXISTS permission_tree JSONB;");
-            System.out.println("====== PostgreSQL DDL migration verified for app_role_permissions table ======");
+            // Check if existing role_permissions table is a legacy join table (lacks permission_tree column)
+            try {
+                jdbcTemplate.execute("SELECT permission_tree FROM role_permissions LIMIT 1;");
+            } catch (Exception ex) {
+                // Drop legacy join table if permission_tree column is missing or incompatible
+                jdbcTemplate.execute("DROP TABLE IF EXISTS role_permissions CASCADE;");
+                System.out.println("====== Legacy role_permissions table dropped to rebuild JSON capability tree table ======");
+            }
+
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS role_permissions (id BIGSERIAL PRIMARY KEY, role_name VARCHAR(255) UNIQUE, permission_tree JSONB, created_at TIMESTAMP, updated_at TIMESTAMP, version BIGINT DEFAULT 0);");
+            jdbcTemplate.execute("ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS role_name VARCHAR(255);");
+            jdbcTemplate.execute("ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS permission_tree JSONB;");
+            jdbcTemplate.execute("ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;");
+            jdbcTemplate.execute("ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;");
+            jdbcTemplate.execute("ALTER TABLE role_permissions ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;");
+            jdbcTemplate.execute("UPDATE role_permissions SET version = 0 WHERE version IS NULL;");
+            jdbcTemplate.execute("UPDATE role_permissions SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL;");
+            jdbcTemplate.execute("UPDATE role_permissions SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL;");
+            System.out.println("====== PostgreSQL DDL migration verified for role_permissions table ======");
         } catch (Exception e) {
             System.err.println("RolePermission DDL check warning: " + e.getMessage());
         }
@@ -85,7 +116,6 @@ public class DataSeeder implements CommandLineRunner {
                     .name("ROLE_CUSTOMER")
                     .description("Standard customer access")
                     .build();
-            permissionRepository.findByName("VIEW_DASHBOARD").ifPresent(p -> customerRole.getPermissions().add(p));
             roleRepository.save(customerRole);
         }
 
@@ -94,7 +124,6 @@ public class DataSeeder implements CommandLineRunner {
                     .name("MANAGER")
                     .description("Manager operational access")
                     .build();
-            permissionRepository.findByName("VIEW_DASHBOARD").ifPresent(p -> managerRole.getPermissions().add(p));
             roleRepository.save(managerRole);
         }
 
@@ -103,8 +132,6 @@ public class DataSeeder implements CommandLineRunner {
                     .name("ROLE_ADMIN")
                     .description("Full administrative access")
                     .build();
-            List<Permission> allPermissions = permissionRepository.findAll();
-            adminRole.getPermissions().addAll(allPermissions);
             roleRepository.save(adminRole);
         }
     }
@@ -130,9 +157,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Map<String, Object> hero = new HashMap<>();
         hero.put("isHeroSection", true);
-        hero.put("isCreate", true);
-        hero.put("isUpdate", true);
-        hero.put("isDelete", true);
 
         Map<String, Object> services = new HashMap<>();
         services.put("isServiceSection", true);
@@ -142,17 +166,14 @@ public class DataSeeder implements CommandLineRunner {
 
         Map<String, Object> aboutUs = new HashMap<>();
         aboutUs.put("isAboutUsSection", true);
-        aboutUs.put("isUpdate", true);
 
-        Map<String, Object> adminCards = new HashMap<>();
-        adminCards.put("isCardsSection", true);
-        adminCards.put("isUpdateCardInfo", true);
-        adminCards.put("isCreateCard", true);
+        Map<String, Object> contactSection = new HashMap<>();
+        contactSection.put("isContactSection", true);
 
         homeSections.put("hero", hero);
         homeSections.put("services", services);
         homeSections.put("aboutUs", aboutUs);
-        homeSections.put("adminSetupCards", adminCards);
+        homeSections.put("contactSection", contactSection);
         home.put("sections", homeSections);
 
         // Product Module
@@ -189,11 +210,32 @@ public class DataSeeder implements CommandLineRunner {
         // User & Role Setup Module
         Map<String, Object> userRoleSetup = new HashMap<>();
         userRoleSetup.put("isUserRolePage", true);
-        Map<String, Object> userRoleActions = new HashMap<>();
-        userRoleActions.put("canCreateRole", true);
-        userRoleActions.put("canCreateUser", true);
-        userRoleActions.put("canGiveAdminPermission", true);
-        userRoleSetup.put("actions", userRoleActions);
+
+        Map<String, Object> systemUser = new HashMap<>();
+        systemUser.put("isSystemUser", true);
+        systemUser.put("isCreate", true);
+        systemUser.put("isUpdate", true);
+        systemUser.put("isDelete", true);
+
+        Map<String, Object> customerUser = new HashMap<>();
+        customerUser.put("isCustomerUser", true);
+        customerUser.put("isUpdate", true);
+        customerUser.put("isDelete", true);
+
+        Map<String, Object> roleManagement = new HashMap<>();
+        roleManagement.put("isRoleManagement", true);
+        roleManagement.put("isCreate", true);
+        roleManagement.put("isUpdate", true);
+        roleManagement.put("isDelete", true);
+
+        Map<String, Object> rolePermissionSetup = new HashMap<>();
+        rolePermissionSetup.put("isRolePermissionSetup", true);
+        rolePermissionSetup.put("isUpdate", true);
+
+        userRoleSetup.put("systemUser", systemUser);
+        userRoleSetup.put("customerUser", customerUser);
+        userRoleSetup.put("roleManagement", roleManagement);
+        userRoleSetup.put("rolePermissionSetup", rolePermissionSetup);
 
         adminTree.put("home", home);
         adminTree.put("product", productModule);
@@ -214,9 +256,6 @@ public class DataSeeder implements CommandLineRunner {
 
         Map<String, Object> hero = new HashMap<>();
         hero.put("isHeroSection", true);
-        hero.put("isCreate", true);
-        hero.put("isUpdate", true);
-        hero.put("isDelete", false);
 
         Map<String, Object> services = new HashMap<>();
         services.put("isServiceSection", true);
@@ -226,17 +265,14 @@ public class DataSeeder implements CommandLineRunner {
 
         Map<String, Object> aboutUs = new HashMap<>();
         aboutUs.put("isAboutUsSection", true);
-        aboutUs.put("isUpdate", true);
 
-        Map<String, Object> adminCards = new HashMap<>();
-        adminCards.put("isCardsSection", true);
-        adminCards.put("isUpdateCardInfo", true);
-        adminCards.put("isCreateCard", false);
+        Map<String, Object> contactSection = new HashMap<>();
+        contactSection.put("isContactSection", true);
 
         homeSections.put("hero", hero);
         homeSections.put("services", services);
         homeSections.put("aboutUs", aboutUs);
-        homeSections.put("adminSetupCards", adminCards);
+        homeSections.put("contactSection", contactSection);
         home.put("sections", homeSections);
 
         // Product Module
@@ -273,11 +309,32 @@ public class DataSeeder implements CommandLineRunner {
         // User & Role Setup Module
         Map<String, Object> userRoleSetup = new HashMap<>();
         userRoleSetup.put("isUserRolePage", true);
-        Map<String, Object> userRoleActions = new HashMap<>();
-        userRoleActions.put("canCreateRole", false);
-        userRoleActions.put("canCreateUser", true);
-        userRoleActions.put("canGiveAdminPermission", false);
-        userRoleSetup.put("actions", userRoleActions);
+
+        Map<String, Object> systemUser = new HashMap<>();
+        systemUser.put("isSystemUser", true);
+        systemUser.put("isCreate", true);
+        systemUser.put("isUpdate", true);
+        systemUser.put("isDelete", false);
+
+        Map<String, Object> customerUser = new HashMap<>();
+        customerUser.put("isCustomerUser", true);
+        customerUser.put("isUpdate", true);
+        customerUser.put("isDelete", false);
+
+        Map<String, Object> roleManagement = new HashMap<>();
+        roleManagement.put("isRoleManagement", true);
+        roleManagement.put("isCreate", false);
+        roleManagement.put("isUpdate", false);
+        roleManagement.put("isDelete", false);
+
+        Map<String, Object> rolePermissionSetup = new HashMap<>();
+        rolePermissionSetup.put("isRolePermissionSetup", true);
+        rolePermissionSetup.put("isUpdate", false);
+
+        userRoleSetup.put("systemUser", systemUser);
+        userRoleSetup.put("customerUser", customerUser);
+        userRoleSetup.put("roleManagement", roleManagement);
+        userRoleSetup.put("rolePermissionSetup", rolePermissionSetup);
 
         managerTree.put("home", home);
         managerTree.put("product", productModule);

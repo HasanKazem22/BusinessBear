@@ -2,7 +2,7 @@ package com.businessbear.server.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "about_us")
@@ -10,12 +10,8 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class AboutUs {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class AboutUs extends BaseEntity {
 
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
@@ -40,13 +36,4 @@ public class AboutUs {
 
     @Column(name = "social_links_json", columnDefinition = "TEXT")
     private String socialLinksJson;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }

@@ -8,7 +8,13 @@ import { useRouter } from "next/navigation";
 export interface User {
   id?: number;
   username: string;
+  fullName?: string;
   email?: string;
+  mobile?: string;
+  city?: string;
+  address?: string;
+  avatarUrl?: string;
+  avatar?: string;
   roles: string[];
   exp?: number;
 }
@@ -33,6 +39,7 @@ interface AuthContextType {
   can: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
   updateRolePermissions: (newPermissions: Record<string, any>) => void;
+  updateUser: (partialUser: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,10 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (payload: AuthResponsePayload | any) => {
     const token = typeof payload === "string" ? payload : payload?.accessToken || payload?.token;
+    const refreshToken = typeof payload === "object" ? payload?.refreshToken : null;
     if (token) {
       setCookie("auth_token", token);
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", token);
+        if (refreshToken) {
+          localStorage.setItem("refresh_token", refreshToken);
+        }
       }
     }
 
@@ -119,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     deleteCookie("auth_token");
     if (typeof window !== "undefined") {
       localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       localStorage.removeItem("user_info");
       localStorage.removeItem("role_permission");
     }
@@ -160,6 +172,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = (permission: string) => can(permission);
 
+  const updateUser = (partialUser: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...partialUser };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user_info", JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -174,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         can,
         hasRole,
         updateRolePermissions,
+        updateUser,
       }}
     >
       {children}

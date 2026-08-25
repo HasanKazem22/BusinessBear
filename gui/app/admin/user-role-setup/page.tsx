@@ -10,26 +10,22 @@ import {
   LuUsers, LuUserCheck, LuShield, LuSlidersHorizontal, LuLock
 } from "react-icons/lu";
 
+import { AccessDeniedCard } from "@/components/ui/AccessDeniedCard";
+
 export default function UserRoleSetupPage() {
   const { can, hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState<"system" | "customers" | "roles" | "permissionSetup">("system");
 
   if (!hasRole("ROLE_ADMIN") && !can("userRoleSetup.isUserRolePage")) {
-    return (
-      <div className="p-8 text-center border border-red-500/20 rounded-2xl bg-red-500/5 text-red-500 space-y-2">
-        <LuLock className="w-10 h-10 mx-auto text-red-500" />
-        <h2 className="text-lg font-bold">403 - Access Denied</h2>
-        <p className="text-xs text-zinc-500">You do not have permission to manage user roles.</p>
-      </div>
-    );
+    return <AccessDeniedCard title="User & Role Setup Restricted" description="You do not have permission to manage user accounts, roles, or permission trees." />;
   }
 
   const tabs = [
-    { id: "system", label: "System Users", icon: LuUsers },
-    { id: "customers", label: "Customer Users", icon: LuUserCheck },
-    { id: "roles", label: "Roles Management", icon: LuShield },
-    { id: "permissionSetup", label: "Role Permission Setup", icon: LuSlidersHorizontal },
-  ];
+    { id: "system", label: "System Users", icon: LuUsers, permission: "userRoleSetup.systemUser.isSystemUser" },
+    { id: "customers", label: "Customer Users", icon: LuUserCheck, permission: "userRoleSetup.customerUser.isCustomerUser" },
+    { id: "roles", label: "Roles Management", icon: LuShield, permission: "userRoleSetup.roleManagement.isRoleManagement" },
+    { id: "permissionSetup", label: "Role Permission Setup", icon: LuSlidersHorizontal, permission: "userRoleSetup.rolePermissionSetup.isRolePermissionSetup" },
+  ].filter((t) => hasRole("ROLE_ADMIN") || can(t.permission));
 
   return (
     <div className="space-y-5">
@@ -44,9 +40,9 @@ export default function UserRoleSetupPage() {
         </p>
       </div>
 
-      {/* Sleek Segmented Pill Tab Bar */}
-      <div className="flex items-center justify-center pt-1 pb-1">
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-md shadow-xs max-w-full overflow-x-auto scrollbar-none">
+      {/* Sleek Segmented Pill Tab Bar (Mobile Scrollable) */}
+      <div className="flex items-center justify-start md:justify-center overflow-x-auto pb-1.5 w-full max-w-full no-scrollbar px-1">
+        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 backdrop-blur-md shadow-xs shrink-0 min-w-max">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

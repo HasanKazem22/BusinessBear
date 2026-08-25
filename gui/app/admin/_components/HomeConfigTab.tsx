@@ -11,6 +11,7 @@ import { Loader } from "@/components/ui/loader";
 import { HeroData, ServiceData, AboutUsData } from "@/types/home";
 import { homeService } from "@/services/homeService";
 import { defaultHero, defaultAbout, withDefaults } from "@/lib/constants/homeDefaults";
+import { useAuth } from "@/context/AuthContext";
 
 // Section Modals
 import { HeroModal } from "./home/HeroModal";
@@ -20,6 +21,8 @@ import { ContactModal } from "./home/ContactModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 export function HomeConfigTab() {
+  const { canAccess, hasRole } = useAuth();
+
   // ── Loading & Error ──
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -210,11 +213,11 @@ export function HomeConfigTab() {
 
   // ── Render: Main ──────────────────────────────────────────────────────────
   const sectionCards = [
-    { id: "hero" as const, icon: <LuSparkles className="w-5 h-5" />, label: "Hero Section" },
-    { id: "services" as const, icon: <LuLayers className="w-5 h-5" />, label: "Our Services" },
-    { id: "about" as const, icon: <LuUserCheck className="w-5 h-5" />, label: "About Us" },
-    { id: "contact" as const, icon: <LuMail className="w-5 h-5" />, label: "Contact Us", hasInbox: true },
-  ];
+    { id: "hero" as const, icon: <LuSparkles className="w-5 h-5" />, label: "Hero Section", perm: "home.sections.hero.isHeroSection" },
+    { id: "services" as const, icon: <LuLayers className="w-5 h-5" />, label: "Our Services", perm: "home.sections.services.isServiceSection" },
+    { id: "about" as const, icon: <LuUserCheck className="w-5 h-5" />, label: "About Us", perm: "home.sections.aboutUs.isAboutUsSection" },
+    { id: "contact" as const, icon: <LuMail className="w-5 h-5" />, label: "Contact Us", hasInbox: true, perm: "home.sections.contactSection.isContactSection" },
+  ].filter((card) => hasRole("ROLE_ADMIN") || canAccess(card.perm));
 
   return (
     <div className="pt-2 pb-8">

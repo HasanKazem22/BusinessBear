@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { Loader } from "@/components/ui/loader";
 import { Input } from "@/components/ui/input";
@@ -11,27 +10,19 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  LuCircleCheck, LuCircleX, LuPencil, LuUserCheck
+  LuCircleCheck, LuCircleX, LuPencil, LuTrash2, LuUserCheck, LuMapPin
 } from "react-icons/lu";
-
-interface CustomerUserItem {
-  id: number;
-  fullName?: string;
-  username: string;
-  email?: string;
-  mobile?: string;
-  isActive: boolean;
-  roles: { id: number; name: string }[];
-}
-
-interface RoleItem {
-  id: number;
-  name: string;
-}
+import { useAuth } from "@/context/AuthContext";
+import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
+import { userRoleService } from "@/services/userRoleService";
+import { CustomerUserItem } from "@/types/userRole";
 
 export function CustomerUsersTab() {
+  const { can, hasRole } = useAuth();
+  const canUpdate = hasRole("ROLE_ADMIN") || can("userRoleSetup.customerUser.isUpdate");
+  const canDelete = hasRole("ROLE_ADMIN") || can("userRoleSetup.customerUser.isDelete");
+
   const [customers, setCustomers] = useState<CustomerUserItem[]>([]);
-  const [rolesList, setRolesList] = useState<RoleItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -46,24 +37,27 @@ export function CustomerUsersTab() {
     username: "",
     email: "",
     mobile: "",
+    address: "",
+    city: "",
+    postalCode: "",
     password: "",
-    roleIds: [] as number[],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Delete Customer Modal State
+  const [deletingCustomer, setDeletingCustomer] = useState<CustomerUserItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [error, setError] = useState<any>(null);
+
   const fetchCustomers = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const [uRes, rRes] = await Promise.all([
-        apiFetch("/admin/users"),
-        apiFetch("/admin/roles"),
-      ]);
-      const customerList = (uRes || []).filter((u: CustomerUserItem) =>
-        u.roles?.some((r) => r.name === "ROLE_CUSTOMER") || !u.roles?.some((r) => r.name === "ROLE_ADMIN" || r.name === "MANAGER")
-      );
-      setCustomers(customerList);
-      setRolesList(rRes || []);
+      const data = await userRoleService.getCustomers();
+      setCustomers(data);
     } catch (err: any) {
+      setError(err);
       toast.error(err?.message || "Failed to load customer accounts.");
     } finally {
       setIsLoading(false);
@@ -85,18 +79,17 @@ export function CustomerUsersTab() {
       username: customer.username,
       email: customer.email || "",
       mobile: customer.mobile || "",
+      address: customer.address || "",
+      city: customer.city || "",
+      postalCode: customer.postalCode || "",
       password: "",
-      roleIds: customer.roles?.map((r) => r.id) || [],
     });
   };
 
   const handleToggleStatus = async (user: CustomerUserItem) => {
     try {
       const nextStatus = !user.isActive;
-      await apiFetch(`/admin/users/${user.id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ isActive: nextStatus }),
-      });
+      await userRoleService.toggleCustomerStatus(user.id, nextStatus);
       toast.success(`Customer '${user.username}' is now ${nextStatus ? "Active" : "Blocked"}.`);
       setCustomers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, isActive: nextStatus } : u))
@@ -110,10 +103,7 @@ export function CustomerUsersTab() {
     if (!editingCustomer) return;
     setIsSubmitting(true);
     try {
-      await apiFetch(`/admin/users/${editingCustomer.id}`, {
-        method: "PUT",
-        body: JSON.stringify(customerForm),
-      });
+      await userRoleService.updateCustomer(editingCustomer.id, customerForm);
       toast.success(`Customer account '${customerForm.username}' updated!`);
       setEditingCustomer(null);
       fetchCustomers();
@@ -124,11 +114,28 @@ export function CustomerUsersTab() {
     }
   };
 
-  const filteredCustomers = customers.filter((c) =>
+  const handleDeleteCustomer = async () => {
+    if (!deletingCustomer) return;
+    setIsDeleting(true);
+    try {
+      await userRoleService.deleteCustomer(deletingCustomer.id);
+      toast.success(`Customer account '@${deletingCustomer.username}' deleted successfully!`);
+      setDeletingCustomer(null);
+      fetchCustomers();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete customer account.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+  const filteredCustomers = safeCustomers.filter((c) =>
     (c.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.username || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (c.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.mobile || "").includes(searchQuery)
+    (c.mobile || "").includes(searchQuery) ||
+    (c.city || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const paginatedCustomers = filteredCustomers.slice(
@@ -136,14 +143,16 @@ export function CustomerUsersTab() {
     currentPage * pageSize
   );
 
+  if (error) return <div className="py-8"><ServerErrorCard error={error} onRetry={fetchCustomers} variant="inline" title="Failed to Load Customer Accounts" /></div>;
+
   return (
     <TableLayout
-      searchPlaceholder="Search customer accounts by name, username, email, mobile..."
+      searchPlaceholder="Search customers by name, username, city..."
       searchValue={searchQuery}
       onSearchChange={setSearchQuery}
       isEmpty={!isLoading && filteredCustomers.length === 0}
       emptyTitle="No customer accounts found"
-      emptyDescription={searchQuery ? `No customer accounts match "${searchQuery}".` : "No customer accounts have registered yet."}
+      emptyDescription={searchQuery ? `No customers match "${searchQuery}".` : "No registered customer accounts exist."}
       emptyIcon={LuUserCheck}
       totalItems={filteredCustomers.length}
       currentPage={currentPage}
@@ -158,11 +167,11 @@ export function CustomerUsersTab() {
         <Table>
           <TableHeader>
             <TableRow className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 text-[11px] uppercase tracking-wider font-bold text-zinc-500">
-              <TableHead className="w-1/3">Customer Profile</TableHead>
-              <TableHead className="w-1/3">Email Address</TableHead>
-              <TableHead className="w-1/4">Mobile Number</TableHead>
-              <TableHead className="w-28">Account Status</TableHead>
-              <TableHead className="text-right pr-5 w-20">Actions</TableHead>
+              <TableHead className="w-1/4">Customer Profile</TableHead>
+              <TableHead className="w-1/4">Contact</TableHead>
+              <TableHead className="w-1/4">Location</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="text-right pr-5 w-24">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
@@ -172,30 +181,51 @@ export function CustomerUsersTab() {
                   <div className="font-bold">{customer.fullName || customer.username}</div>
                   <div className="text-[11px] font-mono text-zinc-400">@{customer.username}</div>
                 </TableCell>
-                <TableCell className="text-zinc-600 dark:text-zinc-300">{customer.email || "N/A"}</TableCell>
-                <TableCell className="text-zinc-600 dark:text-zinc-300">{customer.mobile || "N/A"}</TableCell>
+                <TableCell className="text-zinc-600 dark:text-zinc-300">
+                  <div>{customer.email || "N/A"}</div>
+                  <div className="text-[11px] text-zinc-400">{customer.mobile || "N/A"}</div>
+                </TableCell>
+                <TableCell className="text-zinc-600 dark:text-zinc-300">
+                  <div className="flex items-center gap-1">
+                    <LuMapPin className="w-3 h-3 text-zinc-400" />
+                    <span>{customer.city ? `${customer.city}, ${customer.postalCode || ""}` : "N/A"}</span>
+                  </div>
+                  {customer.address && <div className="text-[10px] text-zinc-400 truncate max-w-xs">{customer.address}</div>}
+                </TableCell>
                 <TableCell>
                   <button
-                    onClick={() => handleToggleStatus(customer)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                    onClick={() => canUpdate && handleToggleStatus(customer)}
+                    disabled={!canUpdate}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all ${
                       customer.isActive
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-                    }`}
+                    } ${canUpdate ? "cursor-pointer" : "opacity-75 cursor-not-allowed"}`}
                   >
                     {customer.isActive ? <LuCircleCheck className="w-3 h-3" /> : <LuCircleX className="w-3 h-3" />}
                     {customer.isActive ? "Active" : "Blocked"}
                   </button>
                 </TableCell>
                 <TableCell className="text-right pr-5">
-                  <div className="flex items-center justify-end">
-                    <button
-                      onClick={() => handleOpenEdit(customer)}
-                      className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors"
-                      title="Edit Customer"
-                    >
-                      <LuPencil className="h-3.5 w-3.5" />
-                    </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {canUpdate && (
+                      <button
+                        onClick={() => handleOpenEdit(customer)}
+                        className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors"
+                        title="Edit Customer Profile"
+                      >
+                        <LuPencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeletingCustomer(customer)}
+                        className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center transition-colors"
+                        title="Delete Customer Account"
+                      >
+                        <LuTrash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -208,7 +238,7 @@ export function CustomerUsersTab() {
       <Modal
         isOpen={!!editingCustomer}
         onOpenChange={(open) => !open && setEditingCustomer(null)}
-        title={`Edit Customer: @${editingCustomer?.username}`}
+        title={`Edit Customer Profile: @${editingCustomer?.username}`}
         onSave={handleSubmitEdit}
         saveText="Save Changes"
         isLoading={isSubmitting}
@@ -266,7 +296,54 @@ export function CustomerUsersTab() {
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-zinc-500 mb-1">City / Region</label>
+              <Input
+                type="text"
+                placeholder="e.g. Dhaka"
+                value={customerForm.city}
+                onChange={(e) => setCustomerForm({ ...customerForm, city: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-zinc-500 mb-1">Postal Code</label>
+              <Input
+                type="text"
+                placeholder="1205"
+                value={customerForm.postalCode}
+                onChange={(e) => setCustomerForm({ ...customerForm, postalCode: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase text-zinc-500 mb-1">Shipping Address</label>
+            <Input
+              type="text"
+              placeholder="House #, Street, Area..."
+              value={customerForm.address}
+              onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+            />
+          </div>
         </div>
+      </Modal>
+
+      {/* DELETE CUSTOMER MODAL */}
+      <Modal
+        isOpen={!!deletingCustomer}
+        onOpenChange={(open) => !open && setDeletingCustomer(null)}
+        title="Confirm Delete Customer Account"
+        onSave={handleDeleteCustomer}
+        saveText="Delete Customer"
+        isLoading={isDeleting}
+      >
+        <p className="text-xs text-zinc-600 dark:text-zinc-300">
+          Are you sure you want to permanently delete customer account{" "}
+          <strong className="text-zinc-900 dark:text-white font-mono">@{deletingCustomer?.username}</strong>?
+          This action cannot be undone.
+        </p>
       </Modal>
     </TableLayout>
   );

@@ -35,7 +35,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${lora.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-screen flex flex-col overflow-hidden">
+      <body className="h-screen flex flex-col overflow-hidden" suppressHydrationWarning>
         <div id="google_translate_element" style={{ display: "none" }}></div>
         <Script
           id="google-translate-init"
@@ -62,7 +62,7 @@ export default function RootLayout({
           <AuthProvider>
             <Toaster position="top-right" toastOptions={{ className: 'dark:bg-zinc-900 dark:text-white border dark:border-zinc-800' }} />
             <Navbar />
-            <main className="flex-1 overflow-hidden">{children}</main>
+            <main className="flex-1 overflow-y-auto min-h-0">{children}</main>
           </AuthProvider>
         </ThemeProvider>
       </body>

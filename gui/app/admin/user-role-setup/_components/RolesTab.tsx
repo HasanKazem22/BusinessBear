@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { Loader } from "@/components/ui/loader";
 import { Input } from "@/components/ui/input";
@@ -14,12 +13,9 @@ import {
 import {
   LuPencil, LuTrash2, LuShield
 } from "react-icons/lu";
-
-interface RoleItem {
-  id: number;
-  name: string;
-  description?: string;
-}
+import { ServerErrorCard } from "@/components/ui/ServerErrorCard";
+import { userRoleService } from "@/services/userRoleService";
+import { RoleItem } from "@/types/userRole";
 
 export function RolesTab() {
   const [roles, setRoles] = useState<RoleItem[]>([]);
@@ -40,12 +36,16 @@ export function RolesTab() {
   const [deletingRole, setDeletingRole] = useState<RoleItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [error, setError] = useState<any>(null);
+
   const fetchRoles = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const res = await apiFetch("/admin/roles");
-      setRoles(res || []);
+      const data = await userRoleService.getRoles();
+      setRoles(data);
     } catch (err: any) {
+      setError(err);
       toast.error(err?.message || "Failed to load roles.");
     } finally {
       setIsLoading(false);
@@ -76,16 +76,10 @@ export function RolesTab() {
     setIsSubmitting(true);
     try {
       if (editingRole) {
-        await apiFetch(`/admin/roles/${editingRole.id}`, {
-          method: "PUT",
-          body: JSON.stringify(roleForm),
-        });
+        await userRoleService.updateRole(editingRole.id, roleForm);
         toast.success(`Role '${editingRole.name}' updated!`);
       } else {
-        await apiFetch("/admin/roles", {
-          method: "POST",
-          body: JSON.stringify(roleForm),
-        });
+        await userRoleService.createRole(roleForm);
         toast.success(`Role '${roleForm.name}' created!`);
       }
       setShowRoleModal(false);
@@ -101,9 +95,7 @@ export function RolesTab() {
     if (!deletingRole) return;
     setIsDeleting(true);
     try {
-      await apiFetch(`/admin/roles/${deletingRole.id}`, {
-        method: "DELETE",
-      });
+      await userRoleService.deleteRole(deletingRole.id);
       toast.success(`Role '${deletingRole.name}' deleted!`);
       setDeletingRole(null);
       fetchRoles();
@@ -123,6 +115,8 @@ export function RolesTab() {
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
+
+  if (error) return <div className="py-8"><ServerErrorCard error={error} onRetry={fetchRoles} variant="inline" title="Failed to Load Roles" /></div>;
 
   return (
     <TableLayout

@@ -1,108 +1,122 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
-import { toast } from "react-hot-toast";
-import { Loader } from "@/components/ui/loader";
+import {
+  LuSave,
+  LuLayers,
+  LuHouse,
+  LuPackage,
+  LuBuilding2,
+  LuMail,
+  LuShieldCheck,
+  LuChevronDown,
+  LuChevronRight,
+  LuLock
+} from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/dropdown";
-import {
-  LuSave, LuChevronDown, LuChevronRight, LuHouse, LuPackage, LuBuilding2, LuMail, LuShieldCheck, LuLayers
-} from "react-icons/lu";
+import { Loader } from "@/components/ui/loader";
+import { toast } from "react-hot-toast";
 
-interface RoleItem {
-  id: number;
-  name: string;
-  description?: string;
-}
+import { userRoleService } from "@/services/userRoleService";
+import { RoleItem } from "@/types/userRole";
 
 export function RolePermissionSetupTab() {
   const [roles, setRoles] = useState<RoleItem[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>("ROLE_ADMIN");
+  const [selectedRole, setSelectedRole] = useState<string>("ROLE_CUSTOMER");
+
   const [permissionTree, setPermissionTree] = useState<Record<string, any>>({});
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [isLoadingTree, setIsLoadingTree] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Single Accordion State (default "home" is open, opening another collapses previous)
-  const [activeAccordion, setActiveAccordion] = useState<string>("home");
+  // Accordion toggle state: 1 module open at a time
+  const [activeAccordion, setActiveAccordion] = useState<
+    "home" | "product" | "realAsset" | "contactMessage" | "userRoleSetup" | null
+  >("home");
+
+  const toggleAccordion = (
+    module: "home" | "product" | "realAsset" | "contactMessage" | "userRoleSetup"
+  ) => {
+    setActiveAccordion((prev) => (prev === module ? null : module));
+  };
+
+  // Fetch initial role list
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  // Fetch permission tree whenever selectedRole changes
+  useEffect(() => {
+    if (selectedRole) {
+      fetchPermissionTree(selectedRole);
+    }
+  }, [selectedRole]);
 
   const fetchRoles = async () => {
     setIsLoadingRoles(true);
     try {
-      const res = await apiFetch("/admin/roles");
-      const list = res || [];
-      setRoles(list);
-      if (list.length > 0 && !list.some((r: RoleItem) => r.name === selectedRole)) {
-        setSelectedRole(list[0].name);
+      const data = await userRoleService.getRoles();
+      if (data && Array.isArray(data)) {
+        setRoles(data);
+        if (data.length > 0 && !selectedRole) {
+          setSelectedRole(data[0].name);
+        }
       }
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to fetch roles.");
+    } catch (err) {
+      toast.error("Failed to load user roles");
     } finally {
       setIsLoadingRoles(false);
     }
   };
 
-  const fetchRolePermission = async (roleName: string) => {
+  const fetchPermissionTree = async (roleName: string) => {
     setIsLoadingTree(true);
     try {
-      const data = await apiFetch(`/admin/role-permissions/${roleName}`);
-      setPermissionTree(data.permissionTree || {});
-    } catch (err: any) {
-      toast.error(err?.message || `Failed to load permissions for ${roleName}`);
-      setPermissionTree({});
+      const res = await userRoleService.getRolePermission(roleName);
+      if (res && res.permissionTree) {
+        setPermissionTree(res.permissionTree);
+      } else if (res && typeof res === "object") {
+        setPermissionTree(res);
+      }
+    } catch (err) {
+      toast.error("Failed to load permission tree for " + roleName);
     } finally {
       setIsLoadingTree(false);
     }
   };
 
-  useEffect(() => {
-    fetchRoles();
-  }, []);
-
-  useEffect(() => {
-    if (selectedRole) {
-      fetchRolePermission(selectedRole);
+  const handleSavePermissions = async () => {
+    if (!selectedRole) return;
+    setIsSaving(true);
+    try {
+      await userRoleService.updateRolePermission(selectedRole, permissionTree);
+      toast.success(`Permission tree updated for ${selectedRole}`);
+    } catch (err) {
+      toast.error("Error saving permission tree");
+    } finally {
+      setIsSaving(false);
     }
-  }, [selectedRole]);
+  };
 
   const handleToggle = (path: string[]) => {
     setPermissionTree((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      let curr = next;
+      const clone = JSON.parse(JSON.stringify(prev));
+      let curr = clone;
       for (let i = 0; i < path.length - 1; i++) {
         if (!curr[path[i]]) curr[path[i]] = {};
         curr = curr[path[i]];
       }
       const lastKey = path[path.length - 1];
       curr[lastKey] = !curr[lastKey];
-      return next;
+      return clone;
     });
   };
 
-  const toggleAccordion = (key: string) => {
-    setActiveAccordion((prev) => (prev === key ? "" : key));
-  };
-
-  const handleSavePermissions = async () => {
-    setIsSaving(true);
-    try {
-      await apiFetch(`/admin/role-permissions/${selectedRole}`, {
-        method: "PUT",
-        body: JSON.stringify(permissionTree),
-      });
-      toast.success(`Permission tree saved for '${selectedRole}'!`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to save role permissions.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 font-sans">
       {/* TARGET ROLE CONTROL BAR */}
-      <div className="p-3 px-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+      <div className="relative z-30 p-3 px-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
           <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white flex items-center justify-center font-bold shrink-0 shadow-inner">
             <LuLayers className="w-4 h-4" />
@@ -155,31 +169,60 @@ export function RolePermissionSetupTab() {
             masterChecked={!!permissionTree.home?.isHomePage}
             onMasterToggle={() => handleToggle(["home", "isHomePage"])}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <PermissionBox title="Hero Section">
-                <ToggleSwitch label="Show Hero Section" checked={!!permissionTree.home?.sections?.hero?.isHeroSection} onChange={() => handleToggle(["home", "sections", "hero", "isHeroSection"])} />
-                <ToggleSwitch label="Create Hero Banner" checked={!!permissionTree.home?.sections?.hero?.isCreate} onChange={() => handleToggle(["home", "sections", "hero", "isCreate"])} />
-                <ToggleSwitch label="Update Hero Content" checked={!!permissionTree.home?.sections?.hero?.isUpdate} onChange={() => handleToggle(["home", "sections", "hero", "isUpdate"])} />
-                <ToggleSwitch label="Delete Hero Banner" checked={!!permissionTree.home?.sections?.hero?.isDelete} onChange={() => handleToggle(["home", "sections", "hero", "isDelete"])} />
-              </PermissionBox>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-2xs">
+              {/* Category: Hero */}
+              <CategoryHeader title="Hero Section" />
+              <PermissionRow
+                label="Show Hero Section"
+                keyName="home.sections.hero.isHeroSection"
+                checked={!!permissionTree.home?.sections?.hero?.isHeroSection}
+                onChange={() => handleToggle(["home", "sections", "hero", "isHeroSection"])}
+              />
 
-              <PermissionBox title="Services Section">
-                <ToggleSwitch label="Show Services Section" checked={!!permissionTree.home?.sections?.services?.isServiceSection} onChange={() => handleToggle(["home", "sections", "services", "isServiceSection"])} />
-                <ToggleSwitch label="Create Service Card" checked={!!permissionTree.home?.sections?.services?.isCreate} onChange={() => handleToggle(["home", "sections", "services", "isCreate"])} />
-                <ToggleSwitch label="Update Service Card" checked={!!permissionTree.home?.sections?.services?.isUpdate} onChange={() => handleToggle(["home", "sections", "services", "isUpdate"])} />
-                <ToggleSwitch label="Delete Service Card" checked={!!permissionTree.home?.sections?.services?.isDelete} onChange={() => handleToggle(["home", "sections", "services", "isDelete"])} />
-              </PermissionBox>
+              {/* Category: Services */}
+              <CategoryHeader title="Services Section" />
+              <PermissionRow
+                label="Show Services Section"
+                keyName="home.sections.services.isServiceSection"
+                checked={!!permissionTree.home?.sections?.services?.isServiceSection}
+                onChange={() => handleToggle(["home", "sections", "services", "isServiceSection"])}
+              />
+              <PermissionRow
+                label="Create Service Card"
+                keyName="home.sections.services.isCreate"
+                checked={!!permissionTree.home?.sections?.services?.isCreate}
+                onChange={() => handleToggle(["home", "sections", "services", "isCreate"])}
+              />
+              <PermissionRow
+                label="Update Service Card"
+                keyName="home.sections.services.isUpdate"
+                checked={!!permissionTree.home?.sections?.services?.isUpdate}
+                onChange={() => handleToggle(["home", "sections", "services", "isUpdate"])}
+              />
+              <PermissionRow
+                label="Delete Service Card"
+                keyName="home.sections.services.isDelete"
+                checked={!!permissionTree.home?.sections?.services?.isDelete}
+                onChange={() => handleToggle(["home", "sections", "services", "isDelete"])}
+              />
 
-              <PermissionBox title="About Us Section">
-                <ToggleSwitch label="Show About Us Section" checked={!!permissionTree.home?.sections?.aboutUs?.isAboutUsSection} onChange={() => handleToggle(["home", "sections", "aboutUs", "isAboutUsSection"])} />
-                <ToggleSwitch label="Update Profile & Bio" checked={!!permissionTree.home?.sections?.aboutUs?.isUpdate} onChange={() => handleToggle(["home", "sections", "aboutUs", "isUpdate"])} />
-              </PermissionBox>
+              {/* Category: About Us */}
+              <CategoryHeader title="About Us Section" />
+              <PermissionRow
+                label="Show About Us Section"
+                keyName="home.sections.aboutUs.isAboutUsSection"
+                checked={!!permissionTree.home?.sections?.aboutUs?.isAboutUsSection}
+                onChange={() => handleToggle(["home", "sections", "aboutUs", "isAboutUsSection"])}
+              />
 
-              <PermissionBox title="Admin Setup Cards">
-                <ToggleSwitch label="Show Setup Cards Section" checked={!!permissionTree.home?.sections?.adminSetupCards?.isCardsSection} onChange={() => handleToggle(["home", "sections", "adminSetupCards", "isCardsSection"])} />
-                <ToggleSwitch label="Update Setup Cards Info" checked={!!permissionTree.home?.sections?.adminSetupCards?.isUpdateCardInfo} onChange={() => handleToggle(["home", "sections", "adminSetupCards", "isUpdateCardInfo"])} />
-                <ToggleSwitch label="Create Admin Card" checked={!!permissionTree.home?.sections?.adminSetupCards?.isCreateCard} onChange={() => handleToggle(["home", "sections", "adminSetupCards", "isCreateCard"])} />
-              </PermissionBox>
+              {/* Category: Contact */}
+              <CategoryHeader title="Contact Section" />
+              <PermissionRow
+                label="Show Contact Section"
+                keyName="home.sections.contactSection.isContactSection"
+                checked={!!permissionTree.home?.sections?.contactSection?.isContactSection}
+                onChange={() => handleToggle(["home", "sections", "contactSection", "isContactSection"])}
+              />
             </div>
           </AccordionSection>
 
@@ -192,15 +235,39 @@ export function RolePermissionSetupTab() {
             masterChecked={!!permissionTree.product?.isProductPage}
             onMasterToggle={() => handleToggle(["product", "isProductPage"])}
           >
-            <PermissionBox title="Product Management & Sales Actions">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <ToggleSwitch label="Create New Product" checked={!!permissionTree.product?.actions?.isCreateProduct} onChange={() => handleToggle(["product", "actions", "isCreateProduct"])} />
-                <ToggleSwitch label="Update Product Info" checked={!!permissionTree.product?.actions?.isUpdateProduct} onChange={() => handleToggle(["product", "actions", "isUpdateProduct"])} />
-                <ToggleSwitch label="Delete Product" checked={!!permissionTree.product?.actions?.isDeleteProduct} onChange={() => handleToggle(["product", "actions", "isDeleteProduct"])} />
-                <ToggleSwitch label="Manage Stock Quantity" checked={!!permissionTree.product?.actions?.isManageStock} onChange={() => handleToggle(["product", "actions", "isManageStock"])} />
-                <ToggleSwitch label="Record Direct Sale (POS)" checked={!!permissionTree.product?.actions?.isRecordSale} onChange={() => handleToggle(["product", "actions", "isRecordSale"])} />
-              </div>
-            </PermissionBox>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-2xs">
+              <CategoryHeader title="Product Management & Sales Actions" />
+              <PermissionRow
+                label="Create New Product"
+                keyName="product.actions.isCreateProduct"
+                checked={!!permissionTree.product?.actions?.isCreateProduct}
+                onChange={() => handleToggle(["product", "actions", "isCreateProduct"])}
+              />
+              <PermissionRow
+                label="Update Product Information"
+                keyName="product.actions.isUpdateProduct"
+                checked={!!permissionTree.product?.actions?.isUpdateProduct}
+                onChange={() => handleToggle(["product", "actions", "isUpdateProduct"])}
+              />
+              <PermissionRow
+                label="Delete Product"
+                keyName="product.actions.isDeleteProduct"
+                checked={!!permissionTree.product?.actions?.isDeleteProduct}
+                onChange={() => handleToggle(["product", "actions", "isDeleteProduct"])}
+              />
+              <PermissionRow
+                label="Manage Product Stock Quantity"
+                keyName="product.actions.isManageStock"
+                checked={!!permissionTree.product?.actions?.isManageStock}
+                onChange={() => handleToggle(["product", "actions", "isManageStock"])}
+              />
+              <PermissionRow
+                label="Record Direct Sale (POS)"
+                keyName="product.actions.isRecordSale"
+                checked={!!permissionTree.product?.actions?.isRecordSale}
+                onChange={() => handleToggle(["product", "actions", "isRecordSale"])}
+              />
+            </div>
           </AccordionSection>
 
           {/* 3. REAL ASSET MODULE */}
@@ -212,15 +279,39 @@ export function RolePermissionSetupTab() {
             masterChecked={!!permissionTree.realAsset?.isRealAssetPage}
             onMasterToggle={() => handleToggle(["realAsset", "isRealAssetPage"])}
           >
-            <PermissionBox title="Property Listing & Booking Management">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <ToggleSwitch label="Create Real Estate Asset" checked={!!permissionTree.realAsset?.actions?.isCreateAsset} onChange={() => handleToggle(["realAsset", "actions", "isCreateAsset"])} />
-                <ToggleSwitch label="Update Property Details" checked={!!permissionTree.realAsset?.actions?.isUpdateAsset} onChange={() => handleToggle(["realAsset", "actions", "isUpdateAsset"])} />
-                <ToggleSwitch label="Delete Property Asset" checked={!!permissionTree.realAsset?.actions?.isDeleteAsset} onChange={() => handleToggle(["realAsset", "actions", "isDeleteAsset"])} />
-                <ToggleSwitch label="Manage Asset Bookings" checked={!!permissionTree.realAsset?.actions?.isManageBookings} onChange={() => handleToggle(["realAsset", "actions", "isManageBookings"])} />
-                <ToggleSwitch label="Toggle Featured Status" checked={!!permissionTree.realAsset?.actions?.isToggleFeatured} onChange={() => handleToggle(["realAsset", "actions", "isToggleFeatured"])} />
-              </div>
-            </PermissionBox>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-2xs">
+              <CategoryHeader title="Property Listing & Booking Management" />
+              <PermissionRow
+                label="Create Real Estate Property"
+                keyName="realAsset.actions.isCreateAsset"
+                checked={!!permissionTree.realAsset?.actions?.isCreateAsset}
+                onChange={() => handleToggle(["realAsset", "actions", "isCreateAsset"])}
+              />
+              <PermissionRow
+                label="Update Property Details"
+                keyName="realAsset.actions.isUpdateAsset"
+                checked={!!permissionTree.realAsset?.actions?.isUpdateAsset}
+                onChange={() => handleToggle(["realAsset", "actions", "isUpdateAsset"])}
+              />
+              <PermissionRow
+                label="Delete Property Asset"
+                keyName="realAsset.actions.isDeleteAsset"
+                checked={!!permissionTree.realAsset?.actions?.isDeleteAsset}
+                onChange={() => handleToggle(["realAsset", "actions", "isDeleteAsset"])}
+              />
+              <PermissionRow
+                label="Manage Asset Bookings & Inquiries"
+                keyName="realAsset.actions.isManageBookings"
+                checked={!!permissionTree.realAsset?.actions?.isManageBookings}
+                onChange={() => handleToggle(["realAsset", "actions", "isManageBookings"])}
+              />
+              <PermissionRow
+                label="Toggle Featured Property Status"
+                keyName="realAsset.actions.isToggleFeatured"
+                checked={!!permissionTree.realAsset?.actions?.isToggleFeatured}
+                onChange={() => handleToggle(["realAsset", "actions", "isToggleFeatured"])}
+              />
+            </div>
           </AccordionSection>
 
           {/* 4. CONTACT MESSAGES MODULE */}
@@ -232,13 +323,27 @@ export function RolePermissionSetupTab() {
             masterChecked={!!permissionTree.contactMessage?.isMessagePage}
             onMasterToggle={() => handleToggle(["contactMessage", "isMessagePage"])}
           >
-            <PermissionBox title="Client Inquiries & Responses">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                <ToggleSwitch label="View Contact Messages" checked={!!permissionTree.contactMessage?.actions?.isViewMessages} onChange={() => handleToggle(["contactMessage", "actions", "isViewMessages"])} />
-                <ToggleSwitch label="Reply to Message" checked={!!permissionTree.contactMessage?.actions?.isReplyMessage} onChange={() => handleToggle(["contactMessage", "actions", "isReplyMessage"])} />
-                <ToggleSwitch label="Delete Message" checked={!!permissionTree.contactMessage?.actions?.isDeleteMessage} onChange={() => handleToggle(["contactMessage", "actions", "isDeleteMessage"])} />
-              </div>
-            </PermissionBox>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-2xs">
+              <CategoryHeader title="Client Inquiries & Messages" />
+              <PermissionRow
+                label="View Contact Messages"
+                keyName="contactMessage.actions.isViewMessages"
+                checked={!!permissionTree.contactMessage?.actions?.isViewMessages}
+                onChange={() => handleToggle(["contactMessage", "actions", "isViewMessages"])}
+              />
+              <PermissionRow
+                label="Reply to Customer Message"
+                keyName="contactMessage.actions.isReplyMessage"
+                checked={!!permissionTree.contactMessage?.actions?.isReplyMessage}
+                onChange={() => handleToggle(["contactMessage", "actions", "isReplyMessage"])}
+              />
+              <PermissionRow
+                label="Delete Customer Message"
+                keyName="contactMessage.actions.isDeleteMessage"
+                checked={!!permissionTree.contactMessage?.actions?.isDeleteMessage}
+                onChange={() => handleToggle(["contactMessage", "actions", "isDeleteMessage"])}
+              />
+            </div>
           </AccordionSection>
 
           {/* 5. USER & ROLE SETUP MODULE */}
@@ -250,13 +355,97 @@ export function RolePermissionSetupTab() {
             masterChecked={!!permissionTree.userRoleSetup?.isUserRolePage}
             onMasterToggle={() => handleToggle(["userRoleSetup", "isUserRolePage"])}
           >
-            <PermissionBox title="Administrative Delegation Rights">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                <ToggleSwitch label="Create New Roles" checked={!!permissionTree.userRoleSetup?.actions?.canCreateRole} onChange={() => handleToggle(["userRoleSetup", "actions", "canCreateRole"])} />
-                <ToggleSwitch label="Create New Users" checked={!!permissionTree.userRoleSetup?.actions?.canCreateUser} onChange={() => handleToggle(["userRoleSetup", "actions", "canCreateUser"])} />
-                <ToggleSwitch label="Grant Admin Permission Trees" checked={!!permissionTree.userRoleSetup?.actions?.canGiveAdminPermission} onChange={() => handleToggle(["userRoleSetup", "actions", "canGiveAdminPermission"])} />
-              </div>
-            </PermissionBox>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800/60 shadow-2xs">
+              {/* Category: System Users */}
+              <CategoryHeader title="System Users Management" />
+              <PermissionRow
+                label="Show System Users Tab"
+                keyName="userRoleSetup.systemUser.isSystemUser"
+                checked={!!permissionTree.userRoleSetup?.systemUser?.isSystemUser}
+                onChange={() => handleToggle(["userRoleSetup", "systemUser", "isSystemUser"])}
+              />
+              <PermissionRow
+                label="Create System User Account"
+                keyName="userRoleSetup.systemUser.isCreate"
+                checked={!!permissionTree.userRoleSetup?.systemUser?.isCreate}
+                onChange={() => handleToggle(["userRoleSetup", "systemUser", "isCreate"])}
+              />
+              <PermissionRow
+                label="Update System User Account"
+                keyName="userRoleSetup.systemUser.isUpdate"
+                checked={!!permissionTree.userRoleSetup?.systemUser?.isUpdate}
+                onChange={() => handleToggle(["userRoleSetup", "systemUser", "isUpdate"])}
+              />
+              <PermissionRow
+                label="Delete System User Account"
+                keyName="userRoleSetup.systemUser.isDelete"
+                checked={!!permissionTree.userRoleSetup?.systemUser?.isDelete}
+                onChange={() => handleToggle(["userRoleSetup", "systemUser", "isDelete"])}
+              />
+
+              {/* Category: Customer Users */}
+              <CategoryHeader title="Customer Users Management" />
+              <PermissionRow
+                label="Show Customer Users Tab"
+                keyName="userRoleSetup.customerUser.isCustomerUser"
+                checked={!!permissionTree.userRoleSetup?.customerUser?.isCustomerUser}
+                onChange={() => handleToggle(["userRoleSetup", "customerUser", "isCustomerUser"])}
+              />
+              <PermissionRow
+                label="Update Customer Account Details"
+                keyName="userRoleSetup.customerUser.isUpdate"
+                checked={!!permissionTree.userRoleSetup?.customerUser?.isUpdate}
+                onChange={() => handleToggle(["userRoleSetup", "customerUser", "isUpdate"])}
+              />
+              <PermissionRow
+                label="Delete Customer Account"
+                keyName="userRoleSetup.customerUser.isDelete"
+                checked={!!permissionTree.userRoleSetup?.customerUser?.isDelete}
+                onChange={() => handleToggle(["userRoleSetup", "customerUser", "isDelete"])}
+              />
+
+              {/* Category: Role Management */}
+              <CategoryHeader title="Role Management" />
+              <PermissionRow
+                label="Show Role Management Tab"
+                keyName="userRoleSetup.roleManagement.isRoleManagement"
+                checked={!!permissionTree.userRoleSetup?.roleManagement?.isRoleManagement}
+                onChange={() => handleToggle(["userRoleSetup", "roleManagement", "isRoleManagement"])}
+              />
+              <PermissionRow
+                label="Create New Role"
+                keyName="userRoleSetup.roleManagement.isCreate"
+                checked={!!permissionTree.userRoleSetup?.roleManagement?.isCreate}
+                onChange={() => handleToggle(["userRoleSetup", "roleManagement", "isCreate"])}
+              />
+              <PermissionRow
+                label="Update Existing Role"
+                keyName="userRoleSetup.roleManagement.isUpdate"
+                checked={!!permissionTree.userRoleSetup?.roleManagement?.isUpdate}
+                onChange={() => handleToggle(["userRoleSetup", "roleManagement", "isUpdate"])}
+              />
+              <PermissionRow
+                label="Delete Role"
+                keyName="userRoleSetup.roleManagement.isDelete"
+                checked={!!permissionTree.userRoleSetup?.roleManagement?.isDelete}
+                onChange={() => handleToggle(["userRoleSetup", "roleManagement", "isDelete"])}
+              />
+
+              {/* Category: Role Permission Setup */}
+              <CategoryHeader title="Role Permission Setup" />
+              <PermissionRow
+                label="Show Role Permission Setup Tab"
+                keyName="userRoleSetup.rolePermissionSetup.isRolePermissionSetup"
+                checked={!!permissionTree.userRoleSetup?.rolePermissionSetup?.isRolePermissionSetup}
+                onChange={() => handleToggle(["userRoleSetup", "rolePermissionSetup", "isRolePermissionSetup"])}
+              />
+              <PermissionRow
+                label="Update Role Permissions Tree"
+                keyName="userRoleSetup.rolePermissionSetup.isUpdate"
+                checked={!!permissionTree.userRoleSetup?.rolePermissionSetup?.isUpdate}
+                onChange={() => handleToggle(["userRoleSetup", "rolePermissionSetup", "isUpdate"])}
+              />
+            </div>
           </AccordionSection>
 
         </div>
@@ -283,8 +472,11 @@ function AccordionSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm transition-all">
-      <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 flex items-center justify-between cursor-pointer select-none" onClick={onToggle}>
+    <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md overflow-hidden shadow-2xs transition-all">
+      <div
+        onClick={onToggle}
+        className="p-3.5 px-4 flex items-center justify-between cursor-pointer select-none bg-zinc-50/50 dark:bg-zinc-950/30 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/60 transition-colors"
+      >
         <div className="flex items-center gap-2.5">
           <div className="text-zinc-500">{isOpen ? <LuChevronDown className="w-4 h-4" /> : <LuChevronRight className="w-4 h-4" />}</div>
           <div className="flex items-center gap-2 font-bold text-xs text-zinc-900 dark:text-white">
@@ -305,44 +497,58 @@ function AccordionSection({
         </div>
       </div>
 
-      {isOpen && <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-4 bg-white dark:bg-zinc-900">{children}</div>}
+      {isOpen && <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-4 bg-white dark:bg-zinc-950/40">{children}</div>}
     </div>
   );
 }
 
-function PermissionBox({ title, children }: { title: string; children: React.ReactNode }) {
+function CategoryHeader({ title }: { title: string }) {
   return (
-    <div className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40 space-y-2">
-      <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200 dark:border-zinc-800 pb-1">
-        {title}
-      </h4>
-      <div className="space-y-1.5">{children}</div>
+    <div className="bg-zinc-100/70 dark:bg-zinc-950/80 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-y border-zinc-200/60 dark:border-zinc-800/60 first:border-t-0">
+      {title}
     </div>
   );
 }
 
-function ToggleSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+function PermissionRow({
+  label,
+  keyName,
+  checked,
+  onChange,
+}: {
+  label: string;
+  keyName?: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
   return (
-    <label className="flex items-center justify-between p-2 rounded-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer select-none">
-      <span className="text-xs text-zinc-800 dark:text-zinc-200 font-medium">{label}</span>
+    <div className="px-4 py-2.5 flex items-center justify-between gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+          {label}
+        </div>
+        {keyName && (
+          <div className="text-[10px] font-mono text-zinc-400 truncate mt-0.5">
+            {keyName}
+          </div>
+        )}
+      </div>
+
       <button
         type="button"
         role="switch"
         aria-checked={checked}
-        onClick={(e) => {
-          e.preventDefault();
-          onChange();
-        }}
-        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
+        onClick={onChange}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
           checked ? "bg-emerald-500" : "bg-zinc-200 dark:bg-zinc-700"
         }`}
       >
         <span
-          className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
-            checked ? "translate-x-3" : "translate-x-0"
+          className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md ring-0 transition-transform duration-200 ${
+            checked ? "translate-x-4" : "translate-x-0"
           }`}
         />
       </button>
-    </label>
+    </div>
   );
 }
