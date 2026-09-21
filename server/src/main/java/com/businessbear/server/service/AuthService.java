@@ -9,7 +9,6 @@ import com.businessbear.server.entity.Role;
 import com.businessbear.server.entity.User;
 import com.businessbear.server.exception.UserAlreadyExistsException;
 import com.businessbear.server.repository.CustomerRepository;
-import com.businessbear.server.repository.RoleRepository;
 import com.businessbear.server.repository.UserRepository;
 import com.businessbear.server.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,6 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -108,7 +106,7 @@ public class AuthService {
             userId = customer.getId();
             fullName = customer.getFullName();
             email = customer.getEmail();
-            roleNames = Collections.singletonList("ROLE_CUSTOMER");
+            roleNames = Collections.singletonList("CUSTOMER");
         } else {
             roleNames = userDetails.getAuthorities().stream().map(a -> a.getAuthority()).toList();
         }

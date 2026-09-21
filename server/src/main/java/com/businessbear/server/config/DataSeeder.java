@@ -111,9 +111,17 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedRoles() {
-        if (roleRepository.findByName("ROLE_CUSTOMER").isEmpty()) {
+        if (roleRepository.findByName("GUEST").isEmpty()) {
+            Role guestRole = Role.builder()
+                    .name("GUEST")
+                    .description("Unauthenticated visitor access")
+                    .build();
+            roleRepository.save(guestRole);
+        }
+
+        if (roleRepository.findByName("CUSTOMER").isEmpty()) {
             Role customerRole = Role.builder()
-                    .name("ROLE_CUSTOMER")
+                    .name("CUSTOMER")
                     .description("Standard customer access")
                     .build();
             roleRepository.save(customerRole);
@@ -127,9 +135,9 @@ public class DataSeeder implements CommandLineRunner {
             roleRepository.save(managerRole);
         }
 
-        if (roleRepository.findByName("ROLE_ADMIN").isEmpty()) {
+        if (roleRepository.findByName("ADMIN").isEmpty()) {
             Role adminRole = Role.builder()
-                    .name("ROLE_ADMIN")
+                    .name("ADMIN")
                     .description("Full administrative access")
                     .build();
             roleRepository.save(adminRole);
@@ -137,254 +145,128 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedRolePermissionTrees() {
-        saveOrUpdateRolePermission("ROLE_ADMIN", buildAdminPermissionTree());
-        System.out.println("====== Seeded RolePermission Tree for ROLE_ADMIN ======");
+        saveOrUpdateRolePermission("ADMIN", buildAdminPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for ADMIN ======");
 
         saveOrUpdateRolePermission("MANAGER", buildManagerPermissionTree());
         System.out.println("====== Seeded RolePermission Tree for MANAGER ======");
 
-        saveOrUpdateRolePermission("ROLE_CUSTOMER", buildCustomerPermissionTree());
-        System.out.println("====== Seeded RolePermission Tree for ROLE_CUSTOMER ======");
+        saveOrUpdateRolePermission("CUSTOMER", buildCustomerPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for CUSTOMER ======");
+
+        saveOrUpdateRolePermission("GUEST", buildGuestPermissionTree());
+        System.out.println("====== Seeded RolePermission Tree for GUEST ======");
     }
 
     private Map<String, Object> buildAdminPermissionTree() {
-        Map<String, Object> adminTree = new HashMap<>();
-
-        // Home Module
-        Map<String, Object> home = new HashMap<>();
-        home.put("isHomePage", true);
-        Map<String, Object> homeSections = new HashMap<>();
-
-        Map<String, Object> hero = new HashMap<>();
-        hero.put("isHeroSection", true);
-
-        Map<String, Object> services = new HashMap<>();
-        services.put("isServiceSection", true);
-        services.put("isCreate", true);
-        services.put("isUpdate", true);
-        services.put("isDelete", true);
-
-        Map<String, Object> aboutUs = new HashMap<>();
-        aboutUs.put("isAboutUsSection", true);
-
-        Map<String, Object> contactSection = new HashMap<>();
-        contactSection.put("isContactSection", true);
-
-        homeSections.put("hero", hero);
-        homeSections.put("services", services);
-        homeSections.put("aboutUs", aboutUs);
-        homeSections.put("contactSection", contactSection);
-        home.put("sections", homeSections);
-
-        // Product Module
-        Map<String, Object> productModule = new HashMap<>();
-        productModule.put("isProductPage", true);
-        Map<String, Object> productActions = new HashMap<>();
-        productActions.put("isCreateProduct", true);
-        productActions.put("isUpdateProduct", true);
-        productActions.put("isDeleteProduct", true);
-        productActions.put("isManageStock", true);
-        productActions.put("isRecordSale", true);
-        productModule.put("actions", productActions);
-
-        // Real Asset Module
-        Map<String, Object> realAssetModule = new HashMap<>();
-        realAssetModule.put("isRealAssetPage", true);
-        Map<String, Object> assetActions = new HashMap<>();
-        assetActions.put("isCreateAsset", true);
-        assetActions.put("isUpdateAsset", true);
-        assetActions.put("isDeleteAsset", true);
-        assetActions.put("isManageBookings", true);
-        assetActions.put("isToggleFeatured", true);
-        realAssetModule.put("actions", assetActions);
-
-        // Contact Messages Module
-        Map<String, Object> messageModule = new HashMap<>();
-        messageModule.put("isMessagePage", true);
-        Map<String, Object> messageActions = new HashMap<>();
-        messageActions.put("isViewMessages", true);
-        messageActions.put("isReplyMessage", true);
-        messageActions.put("isDeleteMessage", true);
-        messageModule.put("actions", messageActions);
-
-        // User & Role Setup Module
-        Map<String, Object> userRoleSetup = new HashMap<>();
-        userRoleSetup.put("isUserRolePage", true);
-
-        Map<String, Object> systemUser = new HashMap<>();
-        systemUser.put("isSystemUser", true);
-        systemUser.put("isCreate", true);
-        systemUser.put("isUpdate", true);
-        systemUser.put("isDelete", true);
-
-        Map<String, Object> customerUser = new HashMap<>();
-        customerUser.put("isCustomerUser", true);
-        customerUser.put("isUpdate", true);
-        customerUser.put("isDelete", true);
-
-        Map<String, Object> roleManagement = new HashMap<>();
-        roleManagement.put("isRoleManagement", true);
-        roleManagement.put("isCreate", true);
-        roleManagement.put("isUpdate", true);
-        roleManagement.put("isDelete", true);
-
-        Map<String, Object> rolePermissionSetup = new HashMap<>();
-        rolePermissionSetup.put("isRolePermissionSetup", true);
-        rolePermissionSetup.put("isUpdate", true);
-
-        userRoleSetup.put("systemUser", systemUser);
-        userRoleSetup.put("customerUser", customerUser);
-        userRoleSetup.put("roleManagement", roleManagement);
-        userRoleSetup.put("rolePermissionSetup", rolePermissionSetup);
-
-        adminTree.put("home", home);
-        adminTree.put("product", productModule);
-        adminTree.put("realAsset", realAssetModule);
-        adminTree.put("contactMessage", messageModule);
-        adminTree.put("userRoleSetup", userRoleSetup);
-
-        return adminTree;
+        return buildUnifiedTree(true, true, true);
     }
 
     private Map<String, Object> buildManagerPermissionTree() {
-        Map<String, Object> managerTree = new HashMap<>();
-
-        // Home Module
-        Map<String, Object> home = new HashMap<>();
-        home.put("isHomePage", true);
-        Map<String, Object> homeSections = new HashMap<>();
-
-        Map<String, Object> hero = new HashMap<>();
-        hero.put("isHeroSection", true);
-
-        Map<String, Object> services = new HashMap<>();
-        services.put("isServiceSection", true);
-        services.put("isCreate", true);
-        services.put("isUpdate", true);
-        services.put("isDelete", false);
-
-        Map<String, Object> aboutUs = new HashMap<>();
-        aboutUs.put("isAboutUsSection", true);
-
-        Map<String, Object> contactSection = new HashMap<>();
-        contactSection.put("isContactSection", true);
-
-        homeSections.put("hero", hero);
-        homeSections.put("services", services);
-        homeSections.put("aboutUs", aboutUs);
-        homeSections.put("contactSection", contactSection);
-        home.put("sections", homeSections);
-
-        // Product Module
-        Map<String, Object> productModule = new HashMap<>();
-        productModule.put("isProductPage", true);
-        Map<String, Object> productActions = new HashMap<>();
-        productActions.put("isCreateProduct", true);
-        productActions.put("isUpdateProduct", true);
-        productActions.put("isDeleteProduct", false);
-        productActions.put("isManageStock", true);
-        productActions.put("isRecordSale", true);
-        productModule.put("actions", productActions);
-
-        // Real Asset Module
-        Map<String, Object> realAssetModule = new HashMap<>();
-        realAssetModule.put("isRealAssetPage", true);
-        Map<String, Object> assetActions = new HashMap<>();
-        assetActions.put("isCreateAsset", true);
-        assetActions.put("isUpdateAsset", true);
-        assetActions.put("isDeleteAsset", false);
-        assetActions.put("isManageBookings", true);
-        assetActions.put("isToggleFeatured", true);
-        realAssetModule.put("actions", assetActions);
-
-        // Contact Messages Module
-        Map<String, Object> messageModule = new HashMap<>();
-        messageModule.put("isMessagePage", true);
-        Map<String, Object> messageActions = new HashMap<>();
-        messageActions.put("isViewMessages", true);
-        messageActions.put("isReplyMessage", true);
-        messageActions.put("isDeleteMessage", false);
-        messageModule.put("actions", messageActions);
-
-        // User & Role Setup Module
-        Map<String, Object> userRoleSetup = new HashMap<>();
-        userRoleSetup.put("isUserRolePage", true);
-
-        Map<String, Object> systemUser = new HashMap<>();
-        systemUser.put("isSystemUser", true);
-        systemUser.put("isCreate", true);
-        systemUser.put("isUpdate", true);
-        systemUser.put("isDelete", false);
-
-        Map<String, Object> customerUser = new HashMap<>();
-        customerUser.put("isCustomerUser", true);
-        customerUser.put("isUpdate", true);
-        customerUser.put("isDelete", false);
-
-        Map<String, Object> roleManagement = new HashMap<>();
-        roleManagement.put("isRoleManagement", true);
-        roleManagement.put("isCreate", false);
-        roleManagement.put("isUpdate", false);
-        roleManagement.put("isDelete", false);
-
-        Map<String, Object> rolePermissionSetup = new HashMap<>();
-        rolePermissionSetup.put("isRolePermissionSetup", true);
-        rolePermissionSetup.put("isUpdate", false);
-
-        userRoleSetup.put("systemUser", systemUser);
-        userRoleSetup.put("customerUser", customerUser);
-        userRoleSetup.put("roleManagement", roleManagement);
-        userRoleSetup.put("rolePermissionSetup", rolePermissionSetup);
-
-        managerTree.put("home", home);
-        managerTree.put("product", productModule);
-        managerTree.put("realAsset", realAssetModule);
-        managerTree.put("contactMessage", messageModule);
-        managerTree.put("userRoleSetup", userRoleSetup);
-
-        return managerTree;
+        return buildUnifiedTree(true, true, true);
     }
 
     private Map<String, Object> buildCustomerPermissionTree() {
-        Map<String, Object> customerTree = new HashMap<>();
+        return buildUnifiedTree(true, false, false);
+    }
 
+    private Map<String, Object> buildGuestPermissionTree() {
+        return buildUnifiedTree(true, false, false);
+    }
+
+    private Map<String, Object> buildUnifiedTree(boolean isPublic, boolean isAdmin, boolean allActions) {
+        Map<String, Object> tree = new HashMap<>();
+
+        // Home Module
         Map<String, Object> home = new HashMap<>();
-        home.put("isHomePage", true);
-        Map<String, Object> homeSections = new HashMap<>();
-        Map<String, Object> hero = new HashMap<>();
-        hero.put("isHeroSection", true);
-        hero.put("isCreate", false);
-        hero.put("isUpdate", false);
-        hero.put("isDelete", false);
+        home.put("isPublicPage", isPublic);
+        home.put("isAdminConfig", isAdmin);
+        home.put("actions", buildActions(allActions, allActions, allActions, allActions));
+        Map<String, Object> homeSub = new HashMap<>();
+        homeSub.put("hero", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        homeSub.put("aboutUs", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        homeSub.put("services", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        homeSub.put("contactSection", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        home.put("subModules", homeSub);
+        tree.put("home", home);
 
-        homeSections.put("hero", hero);
-        home.put("sections", homeSections);
+        // Product Module
+        Map<String, Object> product = new HashMap<>();
+        product.put("isPublicPage", isPublic);
+        product.put("isAdminConfig", isAdmin);
+        Map<String, Object> productActions = buildActions(allActions, allActions, allActions, allActions);
+        productActions.put("isManageStock", allActions);
+        productActions.put("isRecordSale", allActions);
+        product.put("actions", productActions);
+        product.put("subModules", new HashMap<>());
+        tree.put("product", product);
 
-        Map<String, Object> productModule = new HashMap<>();
-        productModule.put("isProductPage", true);
-        Map<String, Object> productActions = new HashMap<>();
-        productActions.put("isCreateProduct", false);
-        productActions.put("isUpdateProduct", false);
-        productActions.put("isDeleteProduct", false);
-        productActions.put("isManageStock", false);
-        productActions.put("isRecordSale", false);
-        productModule.put("actions", productActions);
+        // Real Asset Module
+        Map<String, Object> realAsset = new HashMap<>();
+        realAsset.put("isPublicPage", isPublic);
+        realAsset.put("isAdminConfig", isAdmin);
+        Map<String, Object> assetActions = buildActions(allActions, allActions, allActions, allActions);
+        assetActions.put("isManageBookings", allActions);
+        assetActions.put("isToggleFeatured", allActions);
+        realAsset.put("actions", assetActions);
+        realAsset.put("subModules", new HashMap<>());
+        tree.put("realAsset", realAsset);
 
-        Map<String, Object> realAssetModule = new HashMap<>();
-        realAssetModule.put("isRealAssetPage", true);
-        Map<String, Object> assetActions = new HashMap<>();
-        assetActions.put("isCreateAsset", false);
-        assetActions.put("isUpdateAsset", false);
-        assetActions.put("isDeleteAsset", false);
-        assetActions.put("isManageBookings", false);
-        assetActions.put("isToggleFeatured", false);
-        realAssetModule.put("actions", assetActions);
+        // Contact Messages Module
+        Map<String, Object> contactMessage = new HashMap<>();
+        contactMessage.put("isPublicPage", false);
+        contactMessage.put("isAdminConfig", isAdmin);
+        Map<String, Object> msgActions = buildActions(allActions, false, false, allActions);
+        msgActions.put("isReplyMessage", allActions);
+        contactMessage.put("actions", msgActions);
+        contactMessage.put("subModules", new HashMap<>());
+        tree.put("contactMessage", contactMessage);
 
-        customerTree.put("home", home);
-        customerTree.put("product", productModule);
-        customerTree.put("realAsset", realAssetModule);
+        // User Role Setup Module
+        Map<String, Object> userRoleSetup = new HashMap<>();
+        userRoleSetup.put("isPublicPage", false);
+        userRoleSetup.put("isAdminConfig", isAdmin);
+        userRoleSetup.put("actions", buildActions(allActions, false, false, false));
+        Map<String, Object> userRoleSub = new HashMap<>();
+        userRoleSub.put("systemUser", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        userRoleSub.put("customerUser", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        userRoleSub.put("roleManagement", buildSubModule(isAdmin, allActions, allActions, allActions, allActions));
+        userRoleSetup.put("subModules", userRoleSub);
+        tree.put("userRoleSetup", userRoleSetup);
 
-        return customerTree;
+        // Content Module
+        Map<String, Object> content = new HashMap<>();
+        content.put("isPublicPage", isPublic);
+        content.put("isAdminConfig", isAdmin);
+        content.put("actions", buildActions(allActions, allActions, allActions, allActions));
+        content.put("subModules", new HashMap<>());
+        tree.put("content", content);
+
+        // Uddokta Module
+        Map<String, Object> uddokta = new HashMap<>();
+        uddokta.put("isPublicPage", isPublic);
+        uddokta.put("isAdminConfig", isAdmin);
+        uddokta.put("actions", buildActions(allActions, allActions, allActions, allActions));
+        uddokta.put("subModules", new HashMap<>());
+        tree.put("uddokta", uddokta);
+
+        return tree;
+    }
+
+    private Map<String, Object> buildActions(boolean view, boolean create, boolean update, boolean delete) {
+        Map<String, Object> actions = new HashMap<>();
+        actions.put("isView", view);
+        actions.put("isCreate", create);
+        actions.put("isUpdate", update);
+        actions.put("isDelete", delete);
+        return actions;
+    }
+
+    private Map<String, Object> buildSubModule(boolean isAccess, boolean view, boolean create, boolean update, boolean delete) {
+        Map<String, Object> sub = new HashMap<>();
+        sub.put("isAccess", isAccess);
+        sub.put("actions", buildActions(view, create, update, delete));
+        return sub;
     }
 
     private void saveOrUpdateRolePermission(String roleName, Map<String, Object> permissionTree) {
@@ -396,7 +278,7 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedAdminUser() {
         if (userRepository.count() == 0) {
-            Role adminRole = roleRepository.findByName("ROLE_ADMIN").orElseThrow();
+            Role adminRole = roleRepository.findByName("ADMIN").orElseThrow();
             Role managerRole = roleRepository.findByName("MANAGER").orElseThrow();
             
             User admin = User.builder()

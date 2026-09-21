@@ -41,7 +41,7 @@ public class CustomerDTO {
                 .isActive(customer.getIsActive())
                 .createdAt(customer.getCreatedAt())
                 .updatedAt(customer.getUpdatedAt())
-                .roles(Collections.singletonList(Map.of("id", 0L, "name", "ROLE_CUSTOMER", "description", "Customer Account")))
+                .roles(Collections.singletonList(Map.of("id", 0L, "name", "CUSTOMER", "description", "Customer Account")))
                 .build();
     }
 }

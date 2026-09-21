@@ -33,13 +33,13 @@ public class AdminController {
     // ==================== USER MANAGEMENT ====================
 
     @GetMapping("/users")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
     @PostMapping("/users")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<User> createUser(@RequestBody AdminUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
@@ -49,7 +49,7 @@ public class AdminController {
         if (request.getRoleIds() != null && !request.getRoleIds().isEmpty()) {
             roles.addAll(roleRepository.findAllById(request.getRoleIds()));
         } else {
-            roleRepository.findByName("ROLE_CUSTOMER").ifPresent(roles::add);
+            roleRepository.findByName("CUSTOMER").ifPresent(roles::add);
         }
 
         User user = User.builder()
@@ -66,7 +66,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<User> updateUser(@PathVariable Long userId, @RequestBody AdminUserRequest request) {
         User user = userRepository.findById(userId).orElseThrow();
         if (request.getFullName() != null) user.setFullName(request.getFullName());
@@ -84,7 +84,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{userId}/roles")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<User> updateUserRoles(@PathVariable Long userId, @RequestBody RoleAssignmentRequest request) {
         User user = userRepository.findById(userId).orElseThrow();
         List<Long> roleIds = request.getRoleIds();
@@ -96,7 +96,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{userId}/status")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<User> toggleUserStatus(@PathVariable Long userId, @RequestBody UserStatusRequest request) {
         User user = userRepository.findById(userId).orElseThrow();
         user.setIsActive(request.getIsActive());
@@ -104,7 +104,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         if ("admin".equalsIgnoreCase(user.getUsername())) {
@@ -117,18 +117,15 @@ public class AdminController {
     // ==================== ROLE BUILDER ====================
 
     @GetMapping("/roles")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<List<Role>> getAllRoles() {
         return ResponseEntity.ok(roleRepository.findAll());
     }
 
     @PostMapping("/roles")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<Role> createRole(@RequestBody CreateRoleRequest request) {
-        String name = request.getName();
-        if (!name.startsWith("ROLE_") && !name.equals("MANAGER")) {
-            name = "ROLE_" + name.toUpperCase().replace(" ", "_");
-        }
+        String name = request.getName().toUpperCase().replace(" ", "_");
         String description = request.getDescription();
 
         Role role = Role.builder()
@@ -140,7 +137,7 @@ public class AdminController {
     }
 
     @PutMapping("/roles/{roleId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<Role> updateRole(@PathVariable Long roleId, @RequestBody CreateRoleRequest request) {
         Role role = roleRepository.findById(roleId).orElseThrow();
         if (request.getName() != null && !request.getName().isBlank()) {
@@ -153,10 +150,10 @@ public class AdminController {
     }
 
     @DeleteMapping("/roles/{roleId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteRole(@PathVariable Long roleId) {
         Role role = roleRepository.findById(roleId).orElseThrow();
-        if (role.getName().equals("ROLE_ADMIN")) {
+        if (role.getName().equals("ADMIN")) {
             throw new RuntimeException("Cannot delete built-in Super Admin role.");
         }
         roleRepository.delete(role);
@@ -164,7 +161,7 @@ public class AdminController {
     }
 
     @GetMapping("/permissions")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
     public ResponseEntity<List<Permission>> getAllPermissions() {
         return ResponseEntity.ok(permissionRepository.findAll());
     }

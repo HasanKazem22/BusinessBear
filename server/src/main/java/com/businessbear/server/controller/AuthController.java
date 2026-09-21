@@ -5,6 +5,7 @@ import com.businessbear.server.dto.LoginRequest;
 import com.businessbear.server.dto.RefreshTokenRequest;
 import com.businessbear.server.dto.SignupRequest;
 import com.businessbear.server.service.AuthService;
+import com.businessbear.server.service.RolePermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,14 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final RolePermissionService rolePermissionService;
+
+    @GetMapping("/guest-permissions")
+    public ResponseEntity<java.util.Map<String, Object>> getGuestPermissions() {
+        return rolePermissionService.getByRoleName("GUEST")
+                .map(rp -> ResponseEntity.ok(rp.getPermissionTree()))
+                .orElse(ResponseEntity.ok(new java.util.HashMap<>()));
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
