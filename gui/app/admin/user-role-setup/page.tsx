@@ -16,16 +16,16 @@ export default function UserRoleSetupPage() {
   const { can, hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState<"system" | "customers" | "roles" | "permissionSetup">("system");
 
-  if (!hasRole("ROLE_ADMIN") && !can("userRoleSetup.isUserRolePage")) {
+  if (!hasRole("ADMIN") && !can("userRoleSetup.isAdminConfig")) {
     return <AccessDeniedCard title="User & Role Setup Restricted" description="You do not have permission to manage user accounts, roles, or permission trees." />;
   }
 
   const tabs = [
-    { id: "system", label: "System Users", icon: LuUsers, permission: "userRoleSetup.systemUser.isSystemUser" },
-    { id: "customers", label: "Customer Users", icon: LuUserCheck, permission: "userRoleSetup.customerUser.isCustomerUser" },
-    { id: "roles", label: "Roles Management", icon: LuShield, permission: "userRoleSetup.roleManagement.isRoleManagement" },
-    { id: "permissionSetup", label: "Role Permission Setup", icon: LuSlidersHorizontal, permission: "userRoleSetup.rolePermissionSetup.isRolePermissionSetup" },
-  ].filter((t) => hasRole("ROLE_ADMIN") || can(t.permission));
+    { id: "system", label: "System Users", icon: LuUsers, permission: "userRoleSetup.subModules.systemUser.isAccess" },
+    { id: "customers", label: "Customer Users", icon: LuUserCheck, permission: "userRoleSetup.subModules.customerUser.isAccess" },
+    { id: "roles", label: "Roles Management", icon: LuShield, permission: "userRoleSetup.subModules.roleManagement.isAccess" },
+    { id: "permissionSetup", label: "Role Permission Setup", icon: LuSlidersHorizontal, permission: "userRoleSetup.subModules.rolePermissionSetup.isAccess" },
+  ].filter((t) => hasRole("ADMIN") || can(t.permission));
 
   return (
     <div className="space-y-5">

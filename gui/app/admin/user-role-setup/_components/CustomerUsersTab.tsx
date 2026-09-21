@@ -19,8 +19,8 @@ import { CustomerUserItem } from "@/types/userRole";
 
 export function CustomerUsersTab() {
   const { can, hasRole } = useAuth();
-  const canUpdate = hasRole("ROLE_ADMIN") || can("userRoleSetup.customerUser.isUpdate");
-  const canDelete = hasRole("ROLE_ADMIN") || can("userRoleSetup.customerUser.isDelete");
+  const canUpdate = hasRole("ADMIN") || can("userRoleSetup.subModules.customerUser.actions.isUpdate");
+  const canDelete = hasRole("ADMIN") || can("userRoleSetup.subModules.customerUser.actions.isDelete");
 
   const [customers, setCustomers] = useState<CustomerUserItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);

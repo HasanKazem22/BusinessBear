@@ -39,7 +39,7 @@ const STATUS_CONFIG: Record<InquiryStatus, { label: string; color: string }> = {
 export default function MessagesAdminPage() {
   return (
     <PermissionGuard
-      require="contactMessage.isMessagePage"
+      require="contactMessage.isAdminConfig"
       fallback={<AccessDeniedCard title="Messages Access Denied" description="You do not have permission to view or manage contact messages." />}
     >
       <MessagesContent />

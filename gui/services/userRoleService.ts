@@ -15,7 +15,7 @@ export const userRoleService = {
     const res = await apiFetch("/admin/users");
     const list = Array.isArray(res) ? res : res?.content || [];
     return list.filter((u: SystemUserItem) =>
-      u.roles?.some((r) => r.name !== "ROLE_CUSTOMER") || u.roles?.length === 0
+      u.roles?.some((r) => r.name !== "CUSTOMER") || u.roles?.length === 0
     );
   },
 

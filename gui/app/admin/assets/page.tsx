@@ -7,7 +7,7 @@ import { AccessDeniedCard } from "@/components/ui/AccessDeniedCard";
 export default function AssetsPage() {
   return (
     <PermissionGuard
-      require="realAsset.isRealAssetPage"
+      require="realAsset.isAdminConfig"
       fallback={<AccessDeniedCard title="Real Assets Access Denied" description="You do not have permission to view or manage real estate property assets." />}
     >
       <div className="space-y-4">

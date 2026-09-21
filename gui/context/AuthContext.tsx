@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { setCookie, getCookie, deleteCookie } from "../lib/utils/cookies";
 import { parseJwt } from "../lib/utils/jwt";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "../lib/api";
 
 export interface User {
   id?: number;
@@ -63,14 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (e) {
             setUser({
               username: decoded.sub,
-              roles: decoded.authorities ? decoded.authorities.filter((a: string) => a.startsWith("ROLE_")) : [],
+              roles: decoded.authorities ? decoded.authorities : [],
               exp: decoded.exp,
             });
           }
         } else {
           setUser({
             username: decoded.sub,
-            roles: decoded.authorities ? decoded.authorities.filter((a: string) => a.startsWith("ROLE_")) : [],
+            roles: decoded.authorities ? decoded.authorities : [],
             exp: decoded.exp,
           });
         }
@@ -85,6 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         logout();
       }
+    } else {
+      // Guest mode
+      apiFetch("/auth/guest-permissions")
+        .then(data => {
+          setRolePermission(data);
+        })
+        .catch(err => {
+          console.error("Failed to load guest permissions", err);
+        });
     }
   }, []);
 
@@ -105,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: payload.id,
       username: payload.username,
       email: payload.email,
-      roles: payload.roles || (payload.username ? ["ROLE_ADMIN"] : []),
+      roles: payload.roles || (payload.username ? ["ADMIN"] : []),
     }) : null;
 
     if (userData) {
@@ -161,12 +171,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const roles = user?.roles || [];
 
   const hasRole = (role: string) => {
-    const formatted = role.startsWith("ROLE_") ? role : `ROLE_${role}`;
-    return roles.includes(formatted) || roles.includes(role);
+    return roles.includes(role);
   };
 
   const can = (permission: string) => {
-    if (hasRole("ROLE_ADMIN")) return true;
+    if (hasRole("ADMIN")) return true;
     return canAccess(permission);
   };
 

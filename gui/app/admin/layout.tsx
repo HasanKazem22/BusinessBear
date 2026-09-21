@@ -12,7 +12,9 @@ import {
   LuChevronRight,
   LuChevronLeft,
   LuMail,
-  LuShield
+  LuShield,
+  LuTv,
+  LuRocket
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -31,31 +33,43 @@ const sidebarItems = [
     name: "Home",
     href: "/admin/home",
     icon: LuHouse,
-    requirePermission: "home.isHomePage",
+    requirePermission: "home.isAdminConfig",
   },
   {
     name: "Messages",
     href: "/admin/messages",
     icon: LuMail,
-    requirePermission: "contactMessage.isMessagePage",
+    requirePermission: "contactMessage.isAdminConfig",
+  },
+  {
+    name: "Content",
+    href: "/admin/content",
+    icon: LuTv,
+    requirePermission: "content.isAdminConfig",
+  },
+  {
+    name: "Uddokta",
+    href: "/admin/uddokta",
+    icon: LuRocket,
+    requirePermission: "uddokta.isAdminConfig",
   },
   {
     name: "Products",
     href: "/admin/products",
     icon: LuPackage,
-    requirePermission: "product.isProductPage",
+    requirePermission: "product.isAdminConfig",
   },
   {
     name: "Real Assets",
     href: "/admin/assets",
     icon: LuBuilding2,
-    requirePermission: "realAsset.isRealAssetPage",
+    requirePermission: "realAsset.isAdminConfig",
   },
   {
     name: "User & Role Setup",
     href: "/admin/user-role-setup",
     icon: LuShield,
-    requirePermission: "userRoleSetup.isUserRolePage",
+    requirePermission: "userRoleSetup.isAdminConfig",
   },
 ];
 
@@ -82,7 +96,7 @@ export default function AdminLayout({
       </div>
 
       {/* Desktop / Laptop / Tablet Admin Panel */}
-      <div className="hidden md:flex h-[calc(100vh-64px)] overflow-hidden relative">
+      <div className="hidden md:flex h-full overflow-hidden relative">
         {/* Sidebar */}
         <aside
           className={cn(

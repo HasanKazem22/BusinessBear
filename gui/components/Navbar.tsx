@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -9,60 +9,30 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { UserNav } from "@/components/UserNav";
 import { useAuth } from "@/context/AuthContext";
-import { LuMenu, LuX } from "react-icons/lu";
+import {
+  LuHouse,
+  LuTv,
+  LuRocket,
+  LuPackage,
+  LuBuilding2,
+  LuShield,
+  LuMenu,
+  LuX
+} from "react-icons/lu";
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/#home", isScroll: true },
-  { label: "Service", href: "/#services", isScroll: true },
-  { label: "About", href: "/#about", isScroll: true },
-  { label: "Contact", href: "/#contact", isScroll: true },
-  { label: "Product", href: "/product", isScroll: false, requirePermission: "product.isProductPage" },
-  { label: "Real Asset", href: "/real-asset", isScroll: false, requirePermission: "realAsset.isRealAssetPage" },
-  { label: "Admin", href: "/admin", isScroll: false, requireAdmin: true },
+  { label: "Home", href: "/", icon: LuHouse },
+  { label: "Content", href: "/content", icon: LuTv, requirePermission: "content.isPublicPage" },
+  { label: "Uddokta", href: "/uddokta", icon: LuRocket, requirePermission: "uddokta.isPublicPage" },
+  { label: "Product", href: "/product", icon: LuPackage, requirePermission: "product.isPublicPage" },
+  { label: "Real Asset", href: "/real-asset", icon: LuBuilding2, requirePermission: "realAsset.isPublicPage" },
+  { label: "Admin", href: "/admin", icon: LuShield, requireAdmin: true },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
-  const [activeSection, setActiveSection] = useState("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated, canAccess, hasRole } = useAuth();
-
-  useEffect(() => {
-    if (pathname !== "/") return;
-
-    const handleScroll = () => {
-      const sections = NAV_ITEMS.filter((item) => item.isScroll).map((item) =>
-        item.href.replace("/#", "")
-      );
-
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100 && rect.bottom >= 100) {
-            setActiveSection(section);
-            break;
-          }
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [pathname]);
-
-  const handleScrollClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (pathname === "/" && href.startsWith("/#")) {
-      e.preventDefault();
-      const targetId = href.replace("/#", "");
-      const elem = document.getElementById(targetId);
-      if (elem) {
-        elem.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-    setIsMobileMenuOpen(false);
-  };
+  const { isAuthenticated, canAccess, hasRole } = useAuth();
 
   if (pathname === "/login" || pathname === "/signup") {
     return null;
@@ -71,7 +41,7 @@ export function Navbar() {
   // Filter top navbar links
   const filteredNavItems = NAV_ITEMS.filter((item) => {
     if (item.requireAdmin) {
-      return isAuthenticated && (hasRole("ROLE_ADMIN") || canAccess("userRoleSetup.isUserRolePage"));
+      return isAuthenticated && (hasRole("ADMIN") || canAccess("userRoleSetup.isAdminConfig"));
     }
     if (item.requirePermission) {
       return canAccess(item.requirePermission);
@@ -96,33 +66,35 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Middle Side: Desktop Module Links */}
-        <div className="hidden md:flex items-center gap-7">
+        {/* Middle Side: Desktop Module Links with Icons */}
+        <div className="hidden md:flex items-center gap-6">
           {filteredNavItems.map((item) => {
-            const isActive = item.isScroll && pathname === "/" && activeSection === item.href.replace("/#", "");
+            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+            const Icon = item.icon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={(e) => item.isScroll && handleScrollClick(e, item.href)}
-                className={`text-xs uppercase tracking-wider font-bold transition-all hover:text-zinc-900 dark:hover:text-white ${isActive
+                className={`text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                  isActive
                     ? "text-zinc-950 dark:text-white font-extrabold"
-                    : "text-zinc-500 dark:text-zinc-400"
-                  }`}
+                    : "text-zinc-500 dark:text-zinc-400 font-bold hover:text-zinc-950 dark:hover:text-white"
+                }`}
               >
-                {item.label}
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </div>
 
-        {/* Right Side: Actions */}
+        {/* Right Side: User Actions */}
         <div className="flex items-center gap-2.5">
           {isAuthenticated ? (
             <UserNav />
           ) : (
             <Link href="/login">
-              <Button variant="outline" size="sm" className="h-8 text-xs font-semibold rounded-full px-4">
+              <Button size="sm" className="h-8 text-xs font-semibold rounded-full px-4 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 transition-colors">
                 Log In
               </Button>
             </Link>
@@ -151,19 +123,20 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 pt-3 pb-4 space-y-3 animate-in slide-in-from-top-2 duration-150 shadow-xl">
           <div className="flex flex-col space-y-1">
-            {filteredNavItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={(e) => {
-                  if (item.isScroll) handleScrollClick(e, item.href);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="px-3 py-2 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {filteredNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center gap-2"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="pt-2 border-t border-zinc-100 dark:border-zinc-900 flex items-center justify-end gap-2">

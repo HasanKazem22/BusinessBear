@@ -19,9 +19,9 @@ import { SystemUserItem, RoleItem } from "@/types/userRole";
 
 export function SystemUsersTab() {
   const { can, hasRole } = useAuth();
-  const canCreate = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isCreate");
-  const canUpdate = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isUpdate");
-  const canDelete = hasRole("ROLE_ADMIN") || can("userRoleSetup.systemUser.isDelete");
+  const canCreate = hasRole("ADMIN") || can("userRoleSetup.subModules.systemUser.actions.isCreate");
+  const canUpdate = hasRole("ADMIN") || can("userRoleSetup.subModules.systemUser.actions.isUpdate");
+  const canDelete = hasRole("ADMIN") || can("userRoleSetup.subModules.systemUser.actions.isDelete");
 
   const [users, setUsers] = useState<SystemUserItem[]>([]);
   const [rolesList, setRolesList] = useState<RoleItem[]>([]);
@@ -345,7 +345,6 @@ export function SystemUsersTab() {
                     className="w-4 h-4 accent-zinc-900 dark:accent-white rounded"
                   />
                   <span className="font-bold text-zinc-900 dark:text-white">{r.name}</span>
-                  <span className="text-[10px] text-zinc-400">({r.description || "System role"})</span>
                 </label>
               ))}
             </div>

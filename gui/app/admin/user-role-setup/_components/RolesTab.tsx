@@ -150,7 +150,7 @@ export function RolesTab() {
           </TableHeader>
           <TableBody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
             {paginatedRoles.map((role) => {
-              const isSystemRole = role.name === "ROLE_ADMIN" || role.name === "MANAGER" || role.name === "ROLE_CUSTOMER";
+              const isSystemRole = role.name === "ADMIN" || role.name === "MANAGER" || role.name === "CUSTOMER";
               return (
                 <TableRow key={role.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                   <TableCell className="font-mono font-bold text-zinc-900 dark:text-white">

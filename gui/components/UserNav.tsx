@@ -37,7 +37,7 @@ export function UserNav() {
   const displayName = user.fullName || user.username || "User";
   const initial = displayName.charAt(0).toUpperCase();
   const avatarUrl = user.avatarUrl || user.avatar;
-  const isAdmin = hasRole("ROLE_ADMIN") || canAccess("userRoleSetup.isUserRolePage");
+  const isAdmin = hasRole("ADMIN") || canAccess("userRoleSetup.isAdminConfig");
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>

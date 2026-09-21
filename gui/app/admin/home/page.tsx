@@ -7,7 +7,7 @@ import { AccessDeniedCard } from "@/components/ui/AccessDeniedCard";
 export default function HomeSettingsPage() {
   return (
     <PermissionGuard
-      require="home.isHomePage"
+      require="home.isAdminConfig"
       fallback={<AccessDeniedCard title="Home Page Management Restricted" description="You do not have permission to view or configure landing page settings." />}
     >
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-6">

@@ -78,6 +78,8 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}): Pr
 
             // Retry original request once with new token
             return apiFetch(endpoint, { ...options, _retry: true });
+          } else {
+            throw new Error("Refresh token expired or invalid");
           }
         } catch (refreshErr) {
           deleteCookie('auth_token');

@@ -393,13 +393,13 @@ export function ProductConfigTab() {
                   </TableCell>
                   <TableCell className="text-right pr-5">
                     <div className="flex items-center justify-end gap-1">
-                      <PermissionGuard require="product.actions.isUpdateProduct">
+                      <PermissionGuard require="product.actions.isUpdate">
                         <button onClick={() => handleOpenEdit(prod)} className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors" title="Edit">
                           <LuPencil className="h-3.5 w-3.5" />
                         </button>
                       </PermissionGuard>
 
-                      <PermissionGuard require="product.actions.isDeleteProduct">
+                      <PermissionGuard require="product.actions.isDelete">
                         <button onClick={() => prod.id && handleDelete(prod.id)} className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors" title="Delete">
                           <LuTrash2 className="h-3.5 w-3.5" />
                         </button>

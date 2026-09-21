@@ -217,7 +217,7 @@ export function HomeConfigTab() {
     { id: "services" as const, icon: <LuLayers className="w-5 h-5" />, label: "Our Services", perm: "home.sections.services.isServiceSection" },
     { id: "about" as const, icon: <LuUserCheck className="w-5 h-5" />, label: "About Us", perm: "home.sections.aboutUs.isAboutUsSection" },
     { id: "contact" as const, icon: <LuMail className="w-5 h-5" />, label: "Contact Us", hasInbox: true, perm: "home.sections.contactSection.isContactSection" },
-  ].filter((card) => hasRole("ROLE_ADMIN") || canAccess(card.perm));
+  ].filter((card) => hasRole("ADMIN") || canAccess(card.perm));
 
   return (
     <div className="pt-2 pb-8">
